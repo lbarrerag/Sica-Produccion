@@ -61,7 +61,8 @@ jobs:
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
           # @swc/helpers no se incluye completo en el standalone de Next.js
-          cp -r node_modules/@swc/helpers/. .next/standalone/node_modules/@swc/helpers/
+          SWC_HELPERS=$(node -e "console.log(require.resolve('@swc/helpers/package.json').replace('/package.json',''))")
+          cp -r "$SWC_HELPERS/." .next/standalone/node_modules/@swc/helpers/
           # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
           echo -n "" > .next/standalone/oryx-manifest.toml
 
