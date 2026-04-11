@@ -1,13 +1,150 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMINISTRADOR
+  SUPERVISOR
+  REGISTRO_MARCA
+  API
+}
+
+enum UserEstado {
+  VIGENTE
+  INACTIVO
+  ELIMINADO
+}
+
+enum ObraEstado {
+  VIGENTE
+  ELIMINADO
+}
+
+enum ContratistaEstado {
+  VIGENTE
+  ELIMINADO
+}
+
+enum EspecialidadEstado {
+  VIGENTE
+  ELIMINADO
+}
+
+enum TrabajadorEstado {
+  VIGENTE
+  ELIMINADO
+}
+
+enum TipoAcceso {
+  ENTRADA
+  SALIDA
+}
+
+model User {
+  id              String     @id @default(cuid())
+  userName        String     @unique @map("user_name")
+  email           String?
+  appEmail        String?    @map("app_email")
+  passwordHash    String     @map("password_hash")
+  role            UserRole   @default(REGISTRO_MARCA)
+  idNegocio       Int        @default(0) @map("id_negocio")
+  codTheme        String?    @map("cod_theme")
+  passwordVigente Boolean    @default(true) @map("password_vigente")
+  estado          UserEstado @default(VIGENTE)
+  userObras       UserObra[]
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model Obra {
+  id          Int              @id @default(autoincrement())
+  nombre      String
+  centroCosto String?          @map("centro_costo")
+  estado      ObraEstado       @default(VIGENTE)
+  userObras   UserObra[]
+  registros   RegistroAcceso[]
+  fechaInsert DateTime         @default(now()) @map("fecha_insert")
+
+  @@map("obras")
+}
+
+model UserObra {
+  id     Int    @id @default(autoincrement())
+  userId String @map("id_usuario")
+  obraId Int    @map("id_obra")
+  user   User   @relation(fields: [userId], references: [id])
+  obra   Obra   @relation(fields: [obraId], references: [id])
+
+  @@unique([userId, obraId])
+  @@map("user_obras")
+}
+
+model Contratista {
+  id             Int               @id @default(autoincrement())
+  identificador  String            @unique
+  nombre         String
+  estado         ContratistaEstado @default(VIGENTE)
+  direccion      String?
+  email          String?
+  nombreContador String?           @map("nombre_contador")
+  telefono       String?
+  ciudad         String?
+  especialidad   String?
+  trabajadores   Trabajador[]
+  registros      RegistroAcceso[]
+  fechaInsert    DateTime          @default(now()) @map("fecha_insert")
+
+  @@map("contratistas")
+}
+
+model Especialidad {
+  id          Int                @id @default(autoincrement())
+  nombre      String
+  estado      EspecialidadEstado @default(VIGENTE)
+  fechaInsert DateTime           @default(now()) @map("fecha_insert")
+
+  @@map("especialidades")
+}
+
+model Trabajador {
+  id                       Int              @id @default(autoincrement())
+  identificador            String           @unique
+  nombre                   String
+  contratistaId            Int?             @map("id_contratista")
+  contratista              Contratista?     @relation(fields: [contratistaId], references: [id])
+  identificadorContratista String?          @map("identificador_contratista")
+  nombreContratista        String?          @map("nombre_contratista")
+  estado                   TrabajadorEstado @default(VIGENTE)
+  direccion                String?
+  ciudad                   String?
+  especialidad             String?
+  telefono                 String?
+  fechaNacimiento          DateTime?        @map("fecha_nacimiento")
+  preguntas                String?
+  registros                RegistroAcceso[]
+  fechaInsert              DateTime         @default(now()) @map("fecha_insert")
+
+  @@map("trabajadores")
+}
+
+model RegistroAcceso {
+  id                       Int          @id @default(autoincrement())
+  trabajadorId             Int          @map("id_trabajador")
+  trabajador               Trabajador   @relation(fields: [trabajadorId], references: [id])
+  obraId                   Int          @map("id_obra")
+  obra                     Obra         @relation(fields: [obraId], references: [id])
+  identificador            String
+  contratistaId            Int?         @map("id_contratista")
+  contratista              Contratista? @relation(fields: [contratistaId], references: [id])
+  identificadorContratista String?      @map("identificador_contratista")
+  tipo                     TipoAcceso
+  fechaHora                DateTime     @default(now()) @map("fecha_hora")
+
+  @@map("registro_acceso")
 }
