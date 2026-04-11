@@ -203,12 +203,17 @@ jobs:
           name: sica-build
 
       - name: Deploy via Kudu ZIP Deploy
+        env:
+          DEPLOY_USER: ${{ secrets.AZURE_DEPLOY_USER }}
+          DEPLOY_PASS: ${{ secrets.AZURE_DEPLOY_PASS }}
+          WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
         run: |
+          # Las credenciales se pasan como env vars para que bash no interprete el '$' del username
           curl -X POST \
             --fail \
             --silent \
             --show-error \
-            -u "${{ secrets.AZURE_DEPLOY_USER }}:${{ secrets.AZURE_DEPLOY_PASS }}" \
+            -u "$DEPLOY_USER:$DEPLOY_PASS" \
             -H "Content-Type: application/zip" \
             --data-binary @deploy.zip \
-            "https://${{ secrets.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=true&author=GitHub+Actions"
+            "https://$WEBAPP_NAME.scm.azurewebsites.net/api/zipdeploy?isAsync=true&author=GitHub+Actions"
