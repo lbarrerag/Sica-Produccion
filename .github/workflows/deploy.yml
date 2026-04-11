@@ -140,6 +140,16 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      - name: Generar cliente Prisma
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Seed usuario administrador
+        run: pnpm seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
   deploy:
     name: Deploy a Azure App Service
     runs-on: ubuntu-latest
