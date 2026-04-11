@@ -84,15 +84,17 @@ jobs:
             fi
           done
           # Copiar cliente Prisma generado para que require('.prisma/client/default') funcione.
-          # require('.prisma/client/default') NO es relativo (no empieza con ./), es lookup de paquete.
-          # Node busca node_modules/.prisma/ subiendo desde el archivo que hace require.
-          # La ubicación correcta es node_modules/.prisma/client/ en el standalone (se tara y descomprime).
+          # require('.prisma/client/default') es lookup de paquete - Node busca node_modules/.prisma/ subiendo.
+          # IMPORTANTE: absoluteTar.sh de Kudu excluye directorios hidden (empiezan con '.').
+          # Por eso NO ponemos .prisma/ dentro de node_modules/ (va por tar y se pierde).
+          # En su lugar lo copiamos a prisma-client/ (sin punto) que va por rsync al wwwroot raíz.
+          # El startup command luego lo copia a node_modules/.prisma/client/ antes de arrancar node.
           PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" -type d 2>/dev/null | head -1)
           if [ -n "$PRISMA_GENERATED" ]; then
             echo "Prisma generated client found: $PRISMA_GENERATED"
-            mkdir -p .next/standalone/node_modules/.prisma/client
-            cp -r "$PRISMA_GENERATED/." .next/standalone/node_modules/.prisma/client/
-            echo "Copied .prisma/client to standalone/node_modules/.prisma/client/"
+            mkdir -p .next/standalone/prisma-client
+            cp -r "$PRISMA_GENERATED/." .next/standalone/prisma-client/
+            echo "Copied .prisma/client to standalone/prisma-client/ (goes via rsync, not tar)"
           else
             echo "WARNING: Prisma generated client not found"
           fi
