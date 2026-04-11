@@ -84,22 +84,15 @@ jobs:
             fi
           done
           # Copiar cliente Prisma generado para que require('.prisma/client/default') funcione.
-          # El cliente generado va en .pnpm como hermano de @prisma/client.
-          # Turbopack crea una copia en .next/node_modules/@prisma/client-<hash>/ que también lo necesita.
+          # require('.prisma/client/default') NO es relativo (no empieza con ./), es lookup de paquete.
+          # Node busca node_modules/.prisma/ subiendo desde el archivo que hace require.
+          # La ubicación correcta es node_modules/.prisma/client/ en el standalone (se tara y descomprime).
           PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" -type d 2>/dev/null | head -1)
           if [ -n "$PRISMA_GENERATED" ]; then
             echo "Prisma generated client found: $PRISMA_GENERATED"
-            # 1. Dentro de node_modules/@prisma/client/ (para require normal)
-            mkdir -p .next/standalone/node_modules/@prisma/client/.prisma/client
-            cp -r "$PRISMA_GENERATED/." .next/standalone/node_modules/@prisma/client/.prisma/client/
-            # 2. Dentro de cada .next/standalone/.next/node_modules/@prisma/client-*/ (para Turbopack externalRequire)
-            for turbo_dir in .next/standalone/.next/node_modules/@prisma/client-*/; do
-              if [ -d "$turbo_dir" ]; then
-                mkdir -p "$turbo_dir/.prisma/client"
-                cp -r "$PRISMA_GENERATED/." "$turbo_dir/.prisma/client/"
-                echo "Copied to Turbopack dir: $turbo_dir"
-              fi
-            done
+            mkdir -p .next/standalone/node_modules/.prisma/client
+            cp -r "$PRISMA_GENERATED/." .next/standalone/node_modules/.prisma/client/
+            echo "Copied .prisma/client to standalone/node_modules/.prisma/client/"
           else
             echo "WARNING: Prisma generated client not found"
           fi
