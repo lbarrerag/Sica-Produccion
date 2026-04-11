@@ -62,7 +62,7 @@ jobs:
           cp -r public .next/standalone/public
           # Completar paquetes que Next.js standalone deja incompletos (solo package.json)
           # Busca en pnpm virtual store ya que strict hoisting no crea symlinks en raíz
-          for pkg_rel in "@next/env" "@swc/helpers" "client-only" "detect-libc" "sharp" "@prisma/client-runtime-utils"; do
+          for pkg_rel in "@next/env" "@swc/helpers" "client-only" "detect-libc" "sharp" "@prisma/client-runtime-utils" "pg-cloudflare" "pg-connection-string" "pg-int8" "pg-pool" "pg-protocol" "pg-types"; do
             target=".next/standalone/node_modules/$pkg_rel"
             pkg_name=$(basename "$pkg_rel")
             scope=$(dirname "$pkg_rel")
