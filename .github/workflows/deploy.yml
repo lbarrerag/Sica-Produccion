@@ -60,9 +60,13 @@ jobs:
         run: |
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
-          # Completar paquetes que Next.js standalone deja incompletos (solo package.json)
-          # Busca en pnpm virtual store ya que strict hoisting no crea symlinks en raíz
-          for pkg_rel in "@next/env" "@swc/helpers" "client-only" "detect-libc" "sharp" "@prisma/client-runtime-utils" "pg-cloudflare" "pg-connection-string" "pg-int8" "pg-pool" "pg-protocol" "pg-types" "pgpass" "postgres-array" "postgres-bytea" "postgres-date" "postgres-interval" "split2" "xtend"; do
+
+          # Completar paquetes que Next.js standalone deja incompletos (solo package.json).
+          # pnpm strict hoisting: los paquetes transitivos solo están en .pnpm/ virtual store.
+          for pkg_rel in "@next/env" "@swc/helpers" "client-only" "detect-libc" "sharp" \
+            "@prisma/client-runtime-utils" "pg-cloudflare" "pg-connection-string" "pg-int8" \
+            "pg-pool" "pg-protocol" "pg-types" "pgpass" "postgres-array" "postgres-bytea" \
+            "postgres-date" "postgres-interval" "split2" "xtend"; do
             target=".next/standalone/node_modules/$pkg_rel"
             pkg_name=$(basename "$pkg_rel")
             scope=$(dirname "$pkg_rel")
@@ -71,62 +75,72 @@ jobs:
             else
               pattern="*/$scope/$pkg_name"
             fi
-            src=$(find node_modules/.pnpm -maxdepth 6 -type d -path "$pattern" 2>/dev/null | grep -v "/node_modules/$pkg_rel/node_modules" | head -1)
+            src=$(find node_modules/.pnpm -maxdepth 6 -type d -path "$pattern" 2>/dev/null \
+              | grep -v "/node_modules/$pkg_rel/node_modules" | head -1)
             if [ -z "$src" ] && [ -d "node_modules/$pkg_rel" ]; then
               src="node_modules/$pkg_rel"
             fi
             if [ -n "$src" ]; then
               mkdir -p "$target"
-              cp -r "$src/." "$target/"
-              echo "Completed: $pkg_rel from $src"
+              # rsync --exclude=node_modules evita copiar dependencias anidadas del pnpm store
+              rsync -a --exclude='node_modules/' "$src/" "$target/"
+              echo "Completed: $pkg_rel"
             else
               echo "WARNING: Not found: $pkg_rel"
             fi
           done
-          # Copiar cliente Prisma generado para que require('.prisma/client/default') funcione.
-          # require('.prisma/client/default') es lookup de paquete - Node busca node_modules/.prisma/ subiendo.
-          # IMPORTANTE: absoluteTar.sh de Kudu excluye directorios hidden (empiezan con '.').
-          # Por eso NO ponemos .prisma/ dentro de node_modules/ (va por tar y se pierde).
-          # En su lugar lo copiamos a prisma-client/ (sin punto) que va por rsync al wwwroot raíz.
-          # El startup command luego lo copia a node_modules/.prisma/client/ antes de arrancar node.
-          PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" -type d 2>/dev/null | head -1)
+
+          # Prisma generated client → node_modules/.prisma/client/
+          # La nueva app despliega node_modules/ directamente (sin tar.gz),
+          # así que .prisma/ oculto llega sin problema vía zip extract.
+          PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" \
+            -type d 2>/dev/null | head -1)
           if [ -n "$PRISMA_GENERATED" ]; then
-            echo "Prisma generated client found: $PRISMA_GENERATED"
-            mkdir -p .next/standalone/prisma-client
-            cp -r "$PRISMA_GENERATED/." .next/standalone/prisma-client/
-            echo "Copied .prisma/client to standalone/prisma-client/ (goes via rsync, not tar)"
+            mkdir -p .next/standalone/node_modules/.prisma/client
+            rsync -a "$PRISMA_GENERATED/" .next/standalone/node_modules/.prisma/client/
+            echo "Prisma client copiado a node_modules/.prisma/client/"
           else
             echo "WARNING: Prisma generated client not found"
           fi
-          # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
-          echo -n "" > .next/standalone/oryx-manifest.toml
-          # El startup command de Azure extrae node_modules.tar.gz en lugar de usar node_modules/.
-          # Creamos el tar.gz incluyendo .prisma/client/ para que el startup command lo tenga todo.
-          mkdir -p .next/standalone/node_modules/.prisma/client
-          cp -r .next/standalone/prisma-client/. .next/standalone/node_modules/.prisma/client/
-          # Turbopack genera módulos con hash en .next/node_modules/ (ej: @prisma/client-655ce3cab65a3ac6).
-          # Son SYMLINKS al pnpm store del CI runner — el runner no existe en Azure.
-          # Kudu además excluye directorios 'node_modules/' del rsync, así que .next/node_modules/ nunca llega.
-          # Solución: cp -rL (dereference) para copiar el contenido real, no los symlinks.
-          # Los copiamos a node_modules/ para que entren en el tar.gz y queden en wwwroot/node_modules/.
+
+          # Turbopack hash modules: .next/node_modules/ tiene SYMLINKS al pnpm store.
+          # Los copiamos a node_modules/ usando rsync --exclude=node_modules para evitar
+          # recursión en dependencias anidadas del pnpm virtual store.
           if [ -d ".next/standalone/.next/node_modules" ]; then
-            echo "Copying Turbopack hash modules (dereferencing symlinks) into node_modules/"
-            cp -rL .next/standalone/.next/node_modules/. .next/standalone/node_modules/
+            echo "Copiando Turbopack hash modules a node_modules/..."
+
+            # Módulos sin scope (bcryptjs-xxx, pg-xxx, rimraf-xxx, etc.)
+            for hash_link in .next/standalone/.next/node_modules/*/; do
+              [ -e "$hash_link" ] || continue
+              mod_name=$(basename "$hash_link")
+              real_path=$(readlink -f "$hash_link" 2>/dev/null)
+              if [ -n "$real_path" ] && [ -d "$real_path" ]; then
+                mkdir -p ".next/standalone/node_modules/$mod_name"
+                rsync -a --exclude='node_modules/' "$real_path/" ".next/standalone/node_modules/$mod_name/"
+                echo "  $mod_name"
+              fi
+            done
+
+            # Módulos con scope (@prisma/client-xxx, etc.)
+            for scope_dir in .next/standalone/.next/node_modules/@*/; do
+              [ -d "$scope_dir" ] || continue
+              scope_name=$(basename "$scope_dir")
+              for hash_link in "$scope_dir"*/; do
+                [ -e "$hash_link" ] || continue
+                mod_name=$(basename "$hash_link")
+                real_path=$(readlink -f "$hash_link" 2>/dev/null)
+                if [ -n "$real_path" ] && [ -d "$real_path" ]; then
+                  mkdir -p ".next/standalone/node_modules/@$scope_name/$mod_name"
+                  rsync -a --exclude='node_modules/' "$real_path/" \
+                    ".next/standalone/node_modules/@$scope_name/$mod_name/"
+                  echo "  @$scope_name/$mod_name"
+                fi
+              done
+            done
           fi
-          # Debug: verificar que los módulos hash están en node_modules/ ANTES de crear el tar
-          echo "=== Hash modules en node_modules/ ==="
-          ls .next/standalone/node_modules/@prisma/ 2>/dev/null || echo "WARNING: @prisma/ no encontrado"
-          ls -la .next/standalone/node_modules/ | grep -E "(bcryptjs-|pg-63e|rimraf-)" || echo "INFO: no hash modules sin scope"
-          echo "=== Fin debug ==="
-          cd .next/standalone/node_modules
-          tar czf ../node_modules.tar.gz .
-          cd ../../..
-          # Verificar contenido del tar.gz
-          echo "=== Contenido tar.gz (módulos @prisma) ==="
-          tar tzf .next/standalone/node_modules.tar.gz | grep -E "(@prisma/client-|bcryptjs-|pg-63)" | head -10 || echo "WARNING: módulos hash no encontrados en tar.gz"
-          echo "=== Fin verificación tar.gz ==="
-          # Eliminar el directorio para no duplicar en el zip (el startup command lo recrea del tar.gz)
-          rm -rf .next/standalone/node_modules
+
+          # Evitar que Oryx intente hacer build propio durante el startup
+          echo -n "" > .next/standalone/oryx-manifest.toml
 
       - name: Comprimir artefacto para deploy
         run: |
