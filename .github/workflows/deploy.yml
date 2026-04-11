@@ -91,10 +91,15 @@ jobs:
           done
 
           # Prisma generated client → node_modules/.prisma/client/
-          # La nueva app despliega node_modules/ directamente (sin tar.gz),
-          # así que .prisma/ oculto llega sin problema vía zip extract.
-          PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" \
-            -type d 2>/dev/null | head -1)
+          # pnpm escribe el cliente generado en node_modules/.prisma/client/ (raíz del proyecto).
+          # El find en .pnpm es un fallback para casos excepcionales.
+          if [ -d "node_modules/.prisma/client" ]; then
+            PRISMA_GENERATED="node_modules/.prisma/client"
+            echo "Prisma client encontrado en node_modules/.prisma/client"
+          else
+            PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" \
+              -type d 2>/dev/null | head -1)
+          fi
           if [ -n "$PRISMA_GENERATED" ]; then
             mkdir -p .next/standalone/node_modules/.prisma/client
             rsync -a "$PRISMA_GENERATED/" .next/standalone/node_modules/.prisma/client/
