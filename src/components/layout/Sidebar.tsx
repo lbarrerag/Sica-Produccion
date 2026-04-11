@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
+import Image from "next/image"
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -116,21 +117,14 @@ export default function Sidebar({ role, userName }: SidebarProps) {
     >
       {/* Encabezado / Marca */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-[#0b6b5d]">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 shrink-0">
-          <svg
-            className="w-4.5 h-4.5 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-            />
-          </svg>
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 shrink-0 overflow-hidden">
+          <Image
+            src="/logo.png"
+            alt="Logo"
+            width={32}
+            height={32}
+            className="object-contain w-full h-full"
+          />
         </div>
         <div className="min-w-0">
           <span className="block font-bold text-white text-sm leading-tight">
