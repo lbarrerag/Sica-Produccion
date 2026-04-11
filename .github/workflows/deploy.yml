@@ -91,21 +91,23 @@ jobs:
           done
 
           # Prisma generated client → node_modules/.prisma/client/
-          # pnpm escribe el cliente generado en node_modules/.prisma/client/ (raíz del proyecto).
-          # El find en .pnpm es un fallback para casos excepcionales.
-          if [ -d "node_modules/.prisma/client" ]; then
+          # Con pnpm strict, el cliente generado queda dentro del virtual store:
+          #   node_modules/.pnpm/@prisma+client@X.X.X_.../node_modules/.prisma/client/
+          # El patrón correcto incluye /node_modules/ entre @prisma+client* y /.prisma/client
+          PRISMA_GENERATED=$(find node_modules/.pnpm \
+            -path "*/@prisma+client@*/node_modules/.prisma/client" \
+            -type d 2>/dev/null | head -1)
+          # Fallback: ruta directa en raíz (pnpm no-strict o versiones antiguas)
+          if [ -z "$PRISMA_GENERATED" ] && [ -d "node_modules/.prisma/client" ]; then
             PRISMA_GENERATED="node_modules/.prisma/client"
-            echo "Prisma client encontrado en node_modules/.prisma/client"
-          else
-            PRISMA_GENERATED=$(find node_modules/.pnpm -path "*/@prisma+client*/.prisma/client" \
-              -type d 2>/dev/null | head -1)
           fi
           if [ -n "$PRISMA_GENERATED" ]; then
             mkdir -p .next/standalone/node_modules/.prisma/client
             rsync -a "$PRISMA_GENERATED/" .next/standalone/node_modules/.prisma/client/
-            echo "Prisma client copiado a node_modules/.prisma/client/"
+            echo "Prisma client copiado desde: $PRISMA_GENERATED"
+            ls .next/standalone/node_modules/.prisma/client/ | head -10
           else
-            echo "WARNING: Prisma generated client not found"
+            echo "WARNING: Prisma generated client not found en ninguna ruta"
           fi
 
           # Turbopack hash modules: .next/node_modules/ tiene SYMLINKS al pnpm store.
