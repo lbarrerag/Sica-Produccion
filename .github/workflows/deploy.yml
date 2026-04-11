@@ -113,9 +113,18 @@ jobs:
             echo "Copying Turbopack hash modules (dereferencing symlinks) into node_modules/"
             cp -rL .next/standalone/.next/node_modules/. .next/standalone/node_modules/
           fi
+          # Debug: verificar que los módulos hash están en node_modules/ ANTES de crear el tar
+          echo "=== Hash modules en node_modules/ ==="
+          ls .next/standalone/node_modules/@prisma/ 2>/dev/null || echo "WARNING: @prisma/ no encontrado"
+          ls -la .next/standalone/node_modules/ | grep -E "(bcryptjs-|pg-63e|rimraf-)" || echo "INFO: no hash modules sin scope"
+          echo "=== Fin debug ==="
           cd .next/standalone/node_modules
           tar czf ../node_modules.tar.gz .
           cd ../../..
+          # Verificar contenido del tar.gz
+          echo "=== Contenido tar.gz (módulos @prisma) ==="
+          tar tzf .next/standalone/node_modules.tar.gz | grep -E "(@prisma/client-|bcryptjs-|pg-63)" | head -10 || echo "WARNING: módulos hash no encontrados en tar.gz"
+          echo "=== Fin verificación tar.gz ==="
           # Eliminar el directorio para no duplicar en el zip (el startup command lo recrea del tar.gz)
           rm -rf .next/standalone/node_modules
 
