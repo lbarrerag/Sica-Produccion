@@ -60,10 +60,18 @@ jobs:
         run: |
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
-          # @swc/helpers no se incluye completo en el standalone de Next.js
-          mkdir -p .next/standalone/node_modules/@swc/helpers
-          SWC_SRC=$(find node_modules/.pnpm -path "*/@swc/helpers" -maxdepth 5 -type d -not -path "*/node_modules/.pnpm/*/node_modules/@swc/helpers/node_modules/*" | head -1)
-          if [ -n "$SWC_SRC" ]; then cp -r "$SWC_SRC/." .next/standalone/node_modules/@swc/helpers/; fi
+          # Completar paquetes incompletos del standalone (solo tienen package.json)
+          # El tracer de Next.js no sigue el campo exports en package.json moderno
+          find .next/standalone/node_modules -mindepth 1 -maxdepth 3 -type d | while read pkg_dir; do
+            n=$(find "$pkg_dir" -maxdepth 1 -type f | wc -l)
+            if [ "$n" -eq 1 ]; then
+              rel="${pkg_dir#.next/standalone/node_modules/}"
+              src="node_modules/$rel"
+              if [ -e "$src" ]; then
+                cp -rL "$src/." "$pkg_dir/" 2>/dev/null || true
+              fi
+            fi
+          done
           # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
           echo -n "" > .next/standalone/oryx-manifest.toml
 
