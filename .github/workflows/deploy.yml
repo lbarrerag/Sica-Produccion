@@ -60,16 +60,27 @@ jobs:
         run: |
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
-          # Completar paquetes incompletos del standalone (solo tienen package.json)
-          # El tracer de Next.js no sigue el campo exports en package.json moderno
-          find .next/standalone/node_modules -mindepth 1 -maxdepth 3 -type d | while read pkg_dir; do
-            n=$(find "$pkg_dir" -maxdepth 1 -type f | wc -l)
-            if [ "$n" -eq 1 ]; then
-              rel="${pkg_dir#.next/standalone/node_modules/}"
-              src="node_modules/$rel"
-              if [ -e "$src" ]; then
-                cp -rL "$src/." "$pkg_dir/" 2>/dev/null || true
-              fi
+          # Completar paquetes que Next.js standalone deja incompletos (solo package.json)
+          # Busca en pnpm virtual store ya que strict hoisting no crea symlinks en raíz
+          for pkg_rel in "@next/env" "@swc/helpers" "client-only" "detect-libc" "sharp"; do
+            target=".next/standalone/node_modules/$pkg_rel"
+            pkg_name=$(basename "$pkg_rel")
+            scope=$(dirname "$pkg_rel")
+            if [ "$scope" = "." ]; then
+              pattern="*/$pkg_name"
+            else
+              pattern="*/$scope/$pkg_name"
+            fi
+            src=$(find node_modules/.pnpm -maxdepth 6 -type d -path "$pattern" 2>/dev/null | grep -v "/node_modules/$pkg_rel/node_modules" | head -1)
+            if [ -z "$src" ] && [ -d "node_modules/$pkg_rel" ]; then
+              src="node_modules/$pkg_rel"
+            fi
+            if [ -n "$src" ]; then
+              mkdir -p "$target"
+              cp -r "$src/." "$target/"
+              echo "Completed: $pkg_rel from $src"
+            else
+              echo "WARNING: Not found: $pkg_rel"
             fi
           done
           # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
