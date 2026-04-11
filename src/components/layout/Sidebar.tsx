@@ -116,7 +116,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
     >
       {/* Encabezado / Marca */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-[#E2E8F0]">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E40AF] shrink-0">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0e7f6d] shrink-0">
           <svg
             className="w-4.5 h-4.5 text-white"
             fill="none"
@@ -135,7 +135,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
         <div className="min-w-0">
           <span
             className="block font-bold text-[#0F172A] text-sm leading-tight"
-            style={{ fontFamily: "var(--font-inter)" }}
+            style={{ fontFamily: '"Segoe UI", "Trebuchet MS", sans-serif' }}
           >
             SICA
           </span>
@@ -158,12 +158,12 @@ export default function Sidebar({ role, userName }: SidebarProps) {
                   className={[
                     "flex items-center gap-3 rounded-[8px] px-3 py-2 text-sm font-medium transition-colors",
                     active
-                      ? "bg-blue-100 text-blue-800"
-                      : "text-[#0F172A] hover:bg-[#F1F5F9] hover:text-[#1E40AF]",
+                      ? "bg-[#d7ece6] text-[#0b6b5d]"
+                      : "text-[#0F172A] hover:bg-[#d7ece6] hover:text-[#0e7f6d]",
                   ].join(" ")}
                 >
                   <span
-                    className={active ? "text-blue-700" : "text-[#64748B]"}
+                    className={active ? "text-[#0e7f6d]" : "text-[#64748B]"}
                     aria-hidden="true"
                   >
                     {item.icon}
