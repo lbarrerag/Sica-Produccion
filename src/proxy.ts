@@ -1,13 +1,14 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-const PUBLIC_PATHS = ["/login"]
+const RUTAS_PUBLICAS = ["/login"]
 
-export default auth((req) => {
+export const proxy = auth((req: NextRequest & { auth?: { user?: { role?: string } } }) => {
   const { pathname } = req.nextUrl
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
+  const esPublica = RUTAS_PUBLICAS.some((p) => pathname.startsWith(p))
 
-  if (!req.auth && !isPublic) {
+  if (!req.auth && !esPublica) {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
@@ -17,23 +18,22 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  // Role-based route protection
-  const role = (req.auth?.user as { role?: string } | undefined)?.role
+  const role = req.auth?.user?.role
 
   if (pathname.startsWith("/admin") && role !== "ADMINISTRADOR") {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  const adminOrSupervisor = ["ADMINISTRADOR", "SUPERVISOR"]
-  const supervisorRoutes = ["/obras", "/trabajadores", "/reportes", "/contratistas", "/especialidades"]
-  if (
-    supervisorRoutes.some((r) => pathname.startsWith(r)) &&
-    role === "REGISTRO_MARCA"
-  ) {
+  const rutasSupervisor = ["/obras", "/trabajadores", "/reportes", "/contratistas", "/especialidades"]
+  if (rutasSupervisor.some((r) => pathname.startsWith(r)) && role === "REGISTRO_MARCA") {
     return NextResponse.redirect(new URL("/registro", req.url))
   }
 
-  if (pathname.startsWith("/registro") && role && !["REGISTRO_MARCA", "ADMINISTRADOR"].includes(role)) {
+  if (
+    pathname.startsWith("/registro") &&
+    role &&
+    !["REGISTRO_MARCA", "ADMINISTRADOR"].includes(role)
+  ) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
