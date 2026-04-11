@@ -8,15 +8,18 @@ export const proxy = auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
   const esPublica = RUTAS_PUBLICAS.some((p) => pathname.startsWith(p))
   const session = req.auth
-  const role = (session?.user as { role?: string } | undefined)?.role
+  // NextAuth v5 beta returns {} (empty object) instead of null when there's no session.
+  // Use session?.user to distinguish authenticated vs unauthenticated requests.
+  const user = session?.user
+  const role = (user as { role?: string } | undefined)?.role
 
-  if (!session && !esPublica) {
+  if (!user && !esPublica) {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  if (session && pathname === "/login") {
+  if (user && pathname === "/login") {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
