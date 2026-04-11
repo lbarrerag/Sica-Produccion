@@ -60,6 +60,8 @@ jobs:
         run: |
           cp -r .next/static .next/standalone/.next/static
           cp -r public .next/standalone/public
+          # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
+          echo -n "" > .next/standalone/oryx-manifest.toml
 
       - name: Comprimir artefacto para deploy
         run: |
