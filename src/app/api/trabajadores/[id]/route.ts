@@ -17,7 +17,6 @@ export async function GET(
     where: { id: Number(id) },
     include: {
       contratista: true,
-      especialidad: true,
       registros: {
         orderBy: { fechaHora: "desc" },
         take: 20,

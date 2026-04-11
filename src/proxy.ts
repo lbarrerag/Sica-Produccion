@@ -1,24 +1,24 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import type { NextAuthRequest } from "next-auth"
 
 const RUTAS_PUBLICAS = ["/login"]
 
-export const proxy = auth((req: NextRequest & { auth?: { user?: { role?: string } } }) => {
+export const proxy = auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
   const esPublica = RUTAS_PUBLICAS.some((p) => pathname.startsWith(p))
+  const session = req.auth
+  const role = (session?.user as { role?: string } | undefined)?.role
 
-  if (!req.auth && !esPublica) {
+  if (!session && !esPublica) {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("callbackUrl", pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  if (req.auth && pathname === "/login") {
+  if (session && pathname === "/login") {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
-
-  const role = req.auth?.user?.role
 
   if (pathname.startsWith("/admin") && role !== "ADMINISTRADOR") {
     return NextResponse.redirect(new URL("/dashboard", req.url))

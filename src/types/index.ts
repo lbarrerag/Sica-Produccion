@@ -14,9 +14,6 @@ declare module "next-auth" {
       passwordVigente: boolean
     }
   }
-}
-
-declare module "next-auth/jwt" {
   interface JWT {
     role: UserRole
     passwordVigente: boolean

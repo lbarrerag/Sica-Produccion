@@ -18,7 +18,6 @@ export async function GET(request: Request) {
     where: { identificador: rut, estado: "VIGENTE" },
     include: {
       contratista: true,
-      especialidad: true,
     },
   })
 
@@ -42,7 +41,7 @@ export async function GET(request: Request) {
       nombre: trabajador.nombre,
       identificador: trabajador.identificador,
       nombreContratista: trabajador.contratista?.nombre ?? null,
-      especialidad: trabajador.especialidad?.nombre ?? null,
+      especialidad: trabajador.especialidad ?? null,
     },
     ultimoRegistro: ultimoRegistro
       ? {

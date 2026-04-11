@@ -40,9 +40,18 @@ export async function GET(request: Request) {
     orderBy: { fechaHora: "desc" },
   })
 
-  const buffer = await generarExcelRegistros(registros)
+  const rows = registros.map((r) => ({
+    fechaHora: r.fechaHora,
+    identificador: r.identificador,
+    nombre: r.trabajador.nombre,
+    nombreContratista: r.identificadorContratista,
+    obra: r.obra.nombre,
+    tipo: r.tipo,
+  }))
 
-  return new Response(buffer, {
+  const buffer = await generarExcelRegistros(rows)
+
+  return new Response(buffer.buffer as ArrayBuffer, {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

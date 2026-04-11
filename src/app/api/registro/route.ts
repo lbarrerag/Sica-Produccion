@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
   const trabajador = await prisma.trabajador.findFirst({
     where: { identificador, estado: "VIGENTE" },
-    include: { contratista: true, especialidad: true },
+    include: { contratista: true },
   })
 
   if (!trabajador)
@@ -30,13 +30,24 @@ export async function POST(request: Request) {
     data: {
       trabajadorId: trabajador.id,
       obraId: Number(obraId),
+      identificador: trabajador.identificador,
       tipo,
       fechaHora: new Date(),
-      // Snapshots del contratista al momento del registro
-      nombreContratista: trabajador.contratista?.nombre ?? null,
-      rutContratista: trabajador.contratista?.rut ?? null,
+      contratistaId: trabajador.contratistaId ?? undefined,
+      identificadorContratista: trabajador.identificadorContratista ?? undefined,
+    },
+    include: {
+      trabajador: { select: { nombre: true } },
     },
   })
 
-  return Response.json(registro, { status: 201 })
+  return Response.json({
+    success: true,
+    registro: {
+      id: registro.id,
+      tipo: registro.tipo,
+      fechaHora: registro.fechaHora,
+      trabajador: registro.trabajador,
+    },
+  }, { status: 201 })
 }

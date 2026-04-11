@@ -19,7 +19,6 @@ export async function GET(request: Request) {
     orderBy: { nombre: "asc" },
     include: {
       contratista: true,
-      especialidad: true,
     },
   })
 

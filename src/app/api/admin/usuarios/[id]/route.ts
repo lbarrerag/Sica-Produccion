@@ -1,6 +1,16 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+const SELECT_USER = {
+  id: true,
+  userName: true,
+  email: true,
+  role: true,
+  estado: true,
+  passwordVigente: true,
+  createdAt: true,
+} as const
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,17 +25,8 @@ export async function GET(
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true,
-      nombre: true,
-      email: true,
-      role: true,
-      estado: true,
-      passwordVigente: true,
-      createdAt: true,
-      updatedAt: true,
-      userObras: {
-        include: { obra: true },
-      },
+      ...SELECT_USER,
+      userObras: { include: { obra: true } },
     },
   })
 
@@ -47,32 +48,17 @@ export async function PUT(
   const body = await request.json()
   const { role: userRole, estado, email, obras } = body
 
-  // Update user fields
-  const user = await prisma.user.update({
+  await prisma.user.update({
     where: { id },
     data: {
       ...(userRole !== undefined && { role: userRole }),
       ...(estado !== undefined && { estado }),
       ...(email !== undefined && { email }),
     },
-    select: {
-      id: true,
-      nombre: true,
-      email: true,
-      role: true,
-      estado: true,
-      passwordVigente: true,
-      createdAt: true,
-      updatedAt: true,
-    },
   })
 
-  // Sync UserObra table if obras array is provided
   if (Array.isArray(obras)) {
-    // Delete all existing UserObra entries for this user
     await prisma.userObra.deleteMany({ where: { userId: id } })
-
-    // Create new entries
     if (obras.length > 0) {
       await prisma.userObra.createMany({
         data: obras.map((obraId: number) => ({ userId: id, obraId })),
@@ -83,17 +69,8 @@ export async function PUT(
   const updatedUser = await prisma.user.findUnique({
     where: { id },
     select: {
-      id: true,
-      nombre: true,
-      email: true,
-      role: true,
-      estado: true,
-      passwordVigente: true,
-      createdAt: true,
-      updatedAt: true,
-      userObras: {
-        include: { obra: true },
-      },
+      ...SELECT_USER,
+      userObras: { include: { obra: true } },
     },
   })
 
