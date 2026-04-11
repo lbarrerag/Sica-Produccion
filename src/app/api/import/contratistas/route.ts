@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
     if (!file)
       return NextResponse.json({ error: "No se recibió archivo" }, { status: 400 })
 
-    const buffer = new Uint8Array(await file.arrayBuffer())
     const workbook = new ExcelJS.Workbook()
-    await workbook.xlsx.load(buffer as unknown as Buffer)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await workbook.xlsx.load(Buffer.from(await file.arrayBuffer()) as any)
     const sheet = workbook.worksheets[0]
 
     // Fila 1 = título, fila 2 = cabeceras, fila 3+ = datos
