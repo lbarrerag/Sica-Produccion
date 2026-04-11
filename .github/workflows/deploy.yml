@@ -102,10 +102,16 @@ jobs:
             PRISMA_GENERATED="node_modules/.prisma/client"
           fi
           if [ -n "$PRISMA_GENERATED" ]; then
+            # Copia 1: dentro de node_modules/ (va en tar.gz de Kudu)
             mkdir -p .next/standalone/node_modules/.prisma/client
             rsync -a "$PRISMA_GENERATED/" .next/standalone/node_modules/.prisma/client/
+            # Copia 2: dentro de .next/node_modules/ (va por rsync directo, NO por tar.gz)
+            # El hash module @prisma/client-XXXX busca .prisma/client/ subiendo por la
+            # cadena de directorios desde .next/node_modules/ — esta ruta es la que encuentra primero.
+            mkdir -p .next/standalone/.next/node_modules/.prisma/client
+            rsync -a "$PRISMA_GENERATED/" .next/standalone/.next/node_modules/.prisma/client/
             echo "Prisma client copiado desde: $PRISMA_GENERATED"
-            ls .next/standalone/node_modules/.prisma/client/ | head -10
+            ls .next/standalone/.next/node_modules/.prisma/client/ | head -10
           else
             echo "WARNING: Prisma generated client not found en ninguna ruta"
           fi
