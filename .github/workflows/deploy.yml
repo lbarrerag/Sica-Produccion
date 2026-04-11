@@ -105,11 +105,13 @@ jobs:
           mkdir -p .next/standalone/node_modules/.prisma/client
           cp -r .next/standalone/prisma-client/. .next/standalone/node_modules/.prisma/client/
           # Turbopack genera módulos con hash en .next/node_modules/ (ej: @prisma/client-655ce3cab65a3ac6).
-          # Kudu excluye directorios 'node_modules/' del rsync, así que .next/node_modules/ nunca llega a Azure.
-          # Solución: copiarlos a node_modules/ para que entren en el tar.gz y queden en wwwroot/node_modules/.
+          # Son SYMLINKS al pnpm store del CI runner — el runner no existe en Azure.
+          # Kudu además excluye directorios 'node_modules/' del rsync, así que .next/node_modules/ nunca llega.
+          # Solución: cp -rL (dereference) para copiar el contenido real, no los symlinks.
+          # Los copiamos a node_modules/ para que entren en el tar.gz y queden en wwwroot/node_modules/.
           if [ -d ".next/standalone/.next/node_modules" ]; then
-            echo "Copying Turbopack hash modules from .next/node_modules/ into node_modules/"
-            cp -r .next/standalone/.next/node_modules/. .next/standalone/node_modules/
+            echo "Copying Turbopack hash modules (dereferencing symlinks) into node_modules/"
+            cp -rL .next/standalone/.next/node_modules/. .next/standalone/node_modules/
           fi
           cd .next/standalone/node_modules
           tar czf ../node_modules.tar.gz .
