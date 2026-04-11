@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { ImportarExcel } from "@/components/ui/ImportarExcel"
 
 interface Props {
   searchParams: Promise<{ contratistaId?: string }>
@@ -54,9 +55,12 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
           </p>
         </div>
         {esAdmin && (
-          <Button asChild>
-            <Link href="/trabajadores/new">+ Nuevo Trabajador</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ImportarExcel endpoint="/api/import/trabajadores" label="Importar Excel" />
+            <Button asChild>
+              <Link href="/trabajadores/new">+ Nuevo Trabajador</Link>
+            </Button>
+          </div>
         )}
       </div>
 

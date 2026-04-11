@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth-utils"
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { ImportarExcel } from "@/components/ui/ImportarExcel"
 
 export default async function EspecialidadesPage() {
   await requireRole("ADMINISTRADOR")
@@ -12,11 +13,14 @@ export default async function EspecialidadesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Especialidades</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Gestión de especialidades disponibles en el sistema
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Especialidades</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Gestión de especialidades disponibles en el sistema
+          </p>
+        </div>
+        <ImportarExcel endpoint="/api/import/especialidades" label="Importar Excel" />
       </div>
 
       {/* Formulario nueva especialidad */}

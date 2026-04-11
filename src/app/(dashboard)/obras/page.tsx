@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { ImportarExcel } from "@/components/ui/ImportarExcel"
 
 export default async function ObrasPage() {
   const user = await requireRole("ADMINISTRADOR", "SUPERVISOR")
@@ -32,9 +33,12 @@ export default async function ObrasPage() {
           </p>
         </div>
         {esAdmin && (
-          <Button asChild>
-            <Link href="/obras/new">+ Nueva Obra</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ImportarExcel endpoint="/api/import/obras" label="Importar Excel" />
+            <Button asChild>
+              <Link href="/obras/new">+ Nueva Obra</Link>
+            </Button>
+          </div>
         )}
       </div>
 

@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { ImportarExcel } from "@/components/ui/ImportarExcel"
 
 export default async function ContratistasPage() {
   await requireRole("ADMINISTRADOR")
@@ -29,9 +30,12 @@ export default async function ContratistasPage() {
             Gestión de empresas contratistas
           </p>
         </div>
-        <Button asChild>
-          <Link href="/contratistas/new">+ Nuevo Contratista</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportarExcel endpoint="/api/import/contratistas" label="Importar Excel" />
+          <Button asChild>
+            <Link href="/contratistas/new">+ Nuevo Contratista</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
