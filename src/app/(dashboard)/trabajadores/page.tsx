@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { ImportarExcel } from "@/components/ui/ImportarExcel"
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
 
 interface Props {
   searchParams: Promise<{ contratistaId?: string }>
@@ -151,9 +152,18 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
                               Editar
                             </Link>
                           </Button>
-                          <DeleteTrabajadorButton
-                            id={t.id}
-                            nombre={t.nombre}
+                          <ConfirmDeleteButton
+                            action={async () => {
+                              "use server"
+                              const { prisma: db } = await import("@/lib/db")
+                              await db.trabajador.update({
+                                where: { id: t.id },
+                                data: { estado: "ELIMINADO" },
+                              })
+                              const { revalidatePath } = await import("next/cache")
+                              revalidatePath("/trabajadores")
+                            }}
+                            mensaje={`¿Está seguro de eliminar al trabajador "${t.nombre}"?`}
                           />
                         </>
                       )}
@@ -169,39 +179,3 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
   )
 }
 
-function DeleteTrabajadorButton({
-  id,
-  nombre,
-}: {
-  id: number
-  nombre: string
-}) {
-  return (
-    <form
-      action={async () => {
-        "use server"
-        const { prisma: db } = await import("@/lib/db")
-        await db.trabajador.update({
-          where: { id },
-          data: { estado: "ELIMINADO" },
-        })
-        const { revalidatePath } = await import("next/cache")
-        revalidatePath("/trabajadores")
-      }}
-    >
-      <button
-        type="submit"
-        onClick={(e) => {
-          if (
-            !confirm(`¿Está seguro de eliminar al trabajador "${nombre}"?`)
-          ) {
-            e.preventDefault()
-          }
-        }}
-        className="inline-flex h-8 items-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-      >
-        Eliminar
-      </button>
-    </form>
-  )
-}

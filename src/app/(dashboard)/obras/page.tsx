@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { ImportarExcel } from "@/components/ui/ImportarExcel"
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
 
 export default async function ObrasPage() {
   const user = await requireRole("ADMINISTRADOR", "SUPERVISOR")
@@ -77,7 +78,19 @@ export default async function ObrasPage() {
                           <Button variant="outline" size="sm" asChild>
                             <Link href={`/obras/${obra.id}/edit`}>Editar</Link>
                           </Button>
-                          <DeleteObraButton id={obra.id} nombre={obra.nombre} />
+                          <ConfirmDeleteButton
+                            action={async () => {
+                              "use server"
+                              const { prisma: db } = await import("@/lib/db")
+                              await db.obra.update({
+                                where: { id: obra.id },
+                                data: { estado: "ELIMINADO" },
+                              })
+                              const { revalidatePath } = await import("next/cache")
+                              revalidatePath("/obras")
+                            }}
+                            mensaje={`¿Está seguro de eliminar la obra "${obra.nombre}"?`}
+                          />
                         </>
                       )}
                     </div>
@@ -92,32 +105,3 @@ export default async function ObrasPage() {
   )
 }
 
-// Componente inline para el botón de eliminar (requiere client action)
-function DeleteObraButton({ id, nombre }: { id: number; nombre: string }) {
-  return (
-    <form
-      action={async () => {
-        "use server"
-        const { prisma: db } = await import("@/lib/db")
-        await db.obra.update({
-          where: { id },
-          data: { estado: "ELIMINADO" },
-        })
-        const { revalidatePath } = await import("next/cache")
-        revalidatePath("/obras")
-      }}
-    >
-      <button
-        type="submit"
-        onClick={(e) => {
-          if (!confirm(`¿Está seguro de eliminar la obra "${nombre}"?`)) {
-            e.preventDefault()
-          }
-        }}
-        className="inline-flex h-8 items-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-      >
-        Eliminar
-      </button>
-    </form>
-  )
-}

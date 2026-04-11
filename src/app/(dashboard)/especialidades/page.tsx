@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth-utils"
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { ImportarExcel } from "@/components/ui/ImportarExcel"
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
 
 export default async function EspecialidadesPage() {
   await requireRole("ADMINISTRADOR")
@@ -125,34 +126,22 @@ export default async function EspecialidadesPage() {
                 </form>
 
                 {/* Botón eliminar (soft delete) */}
-                <form
-                  action={async () => {
-                    "use server"
-                    const { prisma: db } = await import("@/lib/db")
-                    await db.especialidad.update({
-                      where: { id: esp.id },
-                      data: { estado: "ELIMINADO" },
-                    })
-                    revalidatePath("/especialidades")
-                  }}
-                  className="ml-2"
-                >
-                  <button
-                    type="submit"
-                    onClick={(e) => {
-                      if (
-                        !confirm(
-                          `¿Está seguro de eliminar la especialidad "${esp.nombre}"?`
-                        )
-                      ) {
-                        e.preventDefault()
-                      }
+                <div className="ml-2">
+                  <ConfirmDeleteButton
+                    action={async () => {
+                      "use server"
+                      const { prisma: db } = await import("@/lib/db")
+                      await db.especialidad.update({
+                        where: { id: esp.id },
+                        data: { estado: "ELIMINADO" },
+                      })
+                      const { revalidatePath: reval } = await import("next/cache")
+                      reval("/especialidades")
                     }}
+                    mensaje={`¿Está seguro de eliminar la especialidad "${esp.nombre}"?`}
                     className="inline-flex h-7 items-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                  >
-                    Eliminar
-                  </button>
-                </form>
+                  />
+                </div>
               </li>
             ))}
           </ul>

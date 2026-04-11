@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { ImportarExcel } from "@/components/ui/ImportarExcel"
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
 
 export default async function ContratistasPage() {
   await requireRole("ADMINISTRADOR")
@@ -79,9 +80,18 @@ export default async function ContratistasPage() {
                           Editar
                         </Link>
                       </Button>
-                      <DeleteContratistaButton
-                        id={contratista.id}
-                        nombre={contratista.nombre}
+                      <ConfirmDeleteButton
+                        action={async () => {
+                          "use server"
+                          const { prisma: db } = await import("@/lib/db")
+                          await db.contratista.update({
+                            where: { id: contratista.id },
+                            data: { estado: "ELIMINADO" },
+                          })
+                          const { revalidatePath } = await import("next/cache")
+                          revalidatePath("/contratistas")
+                        }}
+                        mensaje={`¿Está seguro de eliminar el contratista "${contratista.nombre}"?`}
                       />
                     </div>
                   </TableCell>
@@ -95,37 +105,3 @@ export default async function ContratistasPage() {
   )
 }
 
-function DeleteContratistaButton({
-  id,
-  nombre,
-}: {
-  id: number
-  nombre: string
-}) {
-  return (
-    <form
-      action={async () => {
-        "use server"
-        const { prisma: db } = await import("@/lib/db")
-        await db.contratista.update({
-          where: { id },
-          data: { estado: "ELIMINADO" },
-        })
-        const { revalidatePath } = await import("next/cache")
-        revalidatePath("/contratistas")
-      }}
-    >
-      <button
-        type="submit"
-        onClick={(e) => {
-          if (!confirm(`¿Está seguro de eliminar el contratista "${nombre}"?`)) {
-            e.preventDefault()
-          }
-        }}
-        className="inline-flex h-8 items-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-      >
-        Eliminar
-      </button>
-    </form>
-  )
-}
