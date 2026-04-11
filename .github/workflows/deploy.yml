@@ -8,7 +8,6 @@ on:
 
 env:
   NODE_VERSION: "20"
-  AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
 
 jobs:
   build:
@@ -112,9 +111,13 @@ jobs:
         with:
           name: sica-build
 
-      - name: Deploy a Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: deploy.zip
+      - name: Deploy via Kudu ZIP Deploy
+        run: |
+          curl -X POST \
+            --fail \
+            --silent \
+            --show-error \
+            -u "${{ secrets.AZURE_DEPLOY_USER }}:${{ secrets.AZURE_DEPLOY_PASS }}" \
+            -H "Content-Type: application/zip" \
+            --data-binary @deploy.zip \
+            "https://${{ secrets.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=true&author=GitHub+Actions"
