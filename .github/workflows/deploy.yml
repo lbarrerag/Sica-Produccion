@@ -100,6 +100,15 @@ jobs:
           fi
           # Evita que el runtime de Oryx sobreescriba node_modules al arrancar
           echo -n "" > .next/standalone/oryx-manifest.toml
+          # El startup command de Azure extrae node_modules.tar.gz en lugar de usar node_modules/.
+          # Creamos el tar.gz incluyendo .prisma/client/ para que el startup command lo tenga todo.
+          mkdir -p .next/standalone/node_modules/.prisma/client
+          cp -r .next/standalone/prisma-client/. .next/standalone/node_modules/.prisma/client/
+          cd .next/standalone/node_modules
+          tar czf ../node_modules.tar.gz .
+          cd ../../..
+          # Eliminar el directorio para no duplicar en el zip (el startup command lo recrea del tar.gz)
+          rm -rf .next/standalone/node_modules
 
       - name: Comprimir artefacto para deploy
         run: |
