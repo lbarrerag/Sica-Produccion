@@ -83,9 +83,6 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
             name="contratistaId"
             defaultValue={contratistaId ?? ""}
             className="h-9 rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) => {
-              // handled via form submit on server
-            }}
           >
             <option value="">Todos los contratistas</option>
             {contratistas.map((c) => (
