@@ -39,6 +39,15 @@ export default function ReportesPage() {
   const [cargando, setCargando] = useState(false)
   const [buscado, setBuscado] = useState(false)
   const [paginaActual, setPaginaActual] = useState(1)
+  const [eliminando, setEliminando] = useState(false)
+  const [role, setRole] = useState<string>("")
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((s) => setRole(s?.user?.role ?? ""))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     async function cargar() {
@@ -84,6 +93,31 @@ export default function ReportesPage() {
 
   function exportarExcel() {
     window.location.href = `/api/reportes/export?${buildParams()}`
+  }
+
+  async function eliminarMasivo() {
+    const params = buildParams()
+    const n = registros.length
+    if (
+      !confirm(
+        `¿Está seguro de eliminar ${n.toLocaleString("es-CL")} registros de acceso?\n\nEsta acción no se puede deshacer.`
+      )
+    )
+      return
+
+    setEliminando(true)
+    try {
+      const res = await fetch(`/api/reportes?${params}`, { method: "DELETE" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? "Error al eliminar")
+      toast.success(`${data.eliminados.toLocaleString("es-CL")} registros eliminados`)
+      setRegistros([])
+      setBuscado(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar")
+    } finally {
+      setEliminando(false)
+    }
   }
 
   const totalPaginas = Math.ceil(registros.length / POR_PAGINA)
@@ -139,6 +173,12 @@ export default function ReportesPage() {
             <button type="button" onClick={exportarExcel}
               className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50">
               Exportar Excel
+            </button>
+          )}
+          {buscado && registros.length > 0 && role === "ADMINISTRADOR" && (
+            <button type="button" onClick={eliminarMasivo} disabled={eliminando}
+              className="inline-flex h-9 items-center rounded-md border border-red-200 bg-white px-5 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50">
+              {eliminando ? "Eliminando…" : `Eliminar ${registros.length.toLocaleString("es-CL")} registros`}
             </button>
           )}
         </div>

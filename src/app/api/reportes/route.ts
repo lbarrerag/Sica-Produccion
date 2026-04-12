@@ -1,6 +1,39 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+// ── Eliminación masiva ───────────────────────────────────────────────────────
+export async function DELETE(request: Request) {
+  const session = await auth()
+  if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
+  if ((session.user as { role: string }).role !== "ADMINISTRADOR")
+    return Response.json({ error: "Acceso denegado" }, { status: 403 })
+
+  const { searchParams } = new URL(request.url)
+  const fechaDesde = searchParams.get("fechaDesde")
+  const fechaHasta = searchParams.get("fechaHasta")
+  const obraId = searchParams.get("obraId")
+  const contratistaId = searchParams.get("contratistaId")
+
+  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
+
+  const { count } = await prisma.registroAcceso.deleteMany({
+    where: {
+      ...(fechaDesde && {
+        fechaHora: {
+          gte: new Date(`${fechaDesde}T00:00:00.000Z`),
+          ...(hasta && { lte: hasta }),
+        },
+      }),
+      ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
+      ...(obraId && { obraId: Number(obraId) }),
+      ...(contratistaId && { contratistaId: Number(contratistaId) }),
+    },
+  })
+
+  return Response.json({ eliminados: count })
+}
+
+// ── Consulta ─────────────────────────────────────────────────────────────────
 export async function GET(request: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
