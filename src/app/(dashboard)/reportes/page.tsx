@@ -35,6 +35,7 @@ export default function ReportesPage() {
   const [registros, setRegistros] = useState<RegistroReporte[]>([])
   const [cargando, setCargando] = useState(false)
   const [buscado, setBuscado] = useState(false)
+  const [paginaActual, setPaginaActual] = useState(1)
 
   // Cargar filtros
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function ReportesPage() {
   }
 
   async function buscar() {
+    setPaginaActual(1)
     setCargando(true)
     setBuscado(true)
     try {
@@ -205,52 +207,78 @@ export default function ReportesPage() {
               No se encontraron registros con los filtros seleccionados.
             </div>
           ) : !cargando ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-4 py-3 text-left">Fecha y Hora</th>
-                    <th className="px-4 py-3 text-left">RUT</th>
-                    <th className="px-4 py-3 text-left">Nombre</th>
-                    <th className="px-4 py-3 text-left">Empresa</th>
-                    <th className="px-4 py-3 text-left">Obra</th>
-                    <th className="px-4 py-3 text-left">Tipo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {registros.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-gray-600">
-                        {formatFecha(reg.fechaHora)}
-                      </td>
-                      <td className="px-4 py-3 font-mono">
-                        {formatRUT(reg.identificador)}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {reg.trabajador.nombre}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {reg.contratista?.nombre ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {reg.obra.nombre}
-                      </td>
-                      <td className="px-4 py-3">
-                        {reg.tipo === "ENTRADA" ? (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                            ENTRADA
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                            SALIDA
-                          </span>
-                        )}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+                      <th className="px-4 py-3 text-left">Fecha y Hora</th>
+                      <th className="px-4 py-3 text-left">RUT</th>
+                      <th className="px-4 py-3 text-left">Nombre</th>
+                      <th className="px-4 py-3 text-left">Empresa</th>
+                      <th className="px-4 py-3 text-left">Obra</th>
+                      <th className="px-4 py-3 text-left">Tipo</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {registros.slice((paginaActual - 1) * 20, paginaActual * 20).map((reg) => (
+                      <tr key={reg.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-mono text-gray-600">
+                          {formatFecha(reg.fechaHora)}
+                        </td>
+                        <td className="px-4 py-3 font-mono">
+                          {formatRUT(reg.identificador)}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {reg.trabajador.nombre}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {reg.contratista?.nombre ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">
+                          {reg.obra.nombre}
+                        </td>
+                        <td className="px-4 py-3">
+                          {reg.tipo === "ENTRADA" ? (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                              ENTRADA
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                              SALIDA
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {Math.ceil(registros.length / 20) > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                  <p className="text-sm text-gray-500">
+                    Mostrando{" "}
+                    <span className="font-medium text-gray-700">
+                      {(paginaActual - 1) * 20 + 1}–{Math.min(paginaActual * 20, registros.length)}
+                    </span>{" "}
+                    de <span className="font-medium text-gray-700">{registros.length}</span> registros
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
+                      disabled={paginaActual === 1}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >‹</button>
+                    <span className="px-2 text-sm text-gray-600">{paginaActual} / {Math.ceil(registros.length / 20)}</span>
+                    <button
+                      onClick={() => setPaginaActual((p) => Math.min(Math.ceil(registros.length / 20), p + 1))}
+                      disabled={paginaActual === Math.ceil(registros.length / 20)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >›</button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : null}
         </div>
       )}

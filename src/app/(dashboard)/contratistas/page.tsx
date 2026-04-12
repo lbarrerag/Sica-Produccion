@@ -15,7 +15,7 @@ import { ImportarExcel } from "@/components/ui/ImportarExcel"
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
 import { Paginacion } from "@/components/ui/Paginacion"
 
-const POR_PAGINA = 50
+const POR_PAGINA = 20
 
 interface Props {
   searchParams: Promise<{ pagina?: string; q?: string }>
