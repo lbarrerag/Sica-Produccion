@@ -1,28 +1,17 @@
 "use client"
 
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
 import { formatRUT } from "@/lib/rut"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import type { FilaAcceso } from "@/app/(dashboard)/dashboard/page"
 
-interface Registro {
-  id: number
-  tipo: "ENTRADA" | "SALIDA"
-  fechaHora: Date
-  identificador: string
-  trabajador: { nombre: string }
-  obra: { nombre: string }
+function fmtDt(iso: string | null) {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
 interface AccesosRecientesProps {
-  registros: Registro[]
+  registros: FilaAcceso[]
 }
 
 export default function AccesosRecientes({ registros }: AccesosRecientesProps) {
@@ -35,43 +24,35 @@ export default function AccesosRecientes({ registros }: AccesosRecientesProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Hora</TableHead>
-          <TableHead>RUT</TableHead>
-          <TableHead>Nombre</TableHead>
-          <TableHead>Obra</TableHead>
-          <TableHead>Tipo</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {registros.map((registro) => (
-          <TableRow key={registro.id}>
-            <TableCell className="font-mono text-sm text-gray-600">
-              {format(new Date(registro.fechaHora), "HH:mm", { locale: es })}
-            </TableCell>
-            <TableCell className="font-mono text-sm">
-              {formatRUT(registro.identificador)}
-            </TableCell>
-            <TableCell>{registro.trabajador.nombre}</TableCell>
-            <TableCell className="min-w-[200px]">
-              {registro.obra.nombre}
-            </TableCell>
-            <TableCell>
-              {registro.tipo === "ENTRADA" ? (
-                <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                  ENTRADA
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                  SALIDA
-                </span>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th className="px-4 py-3 text-left">Fecha Registro</th>
+            <th className="px-4 py-3 text-left">Identificador</th>
+            <th className="px-4 py-3 text-left">Nombre</th>
+            <th className="px-4 py-3 text-left">Obra</th>
+            <th className="px-4 py-3 text-left">Centro Costo</th>
+            <th className="px-4 py-3 text-left">Contratista</th>
+            <th className="px-4 py-3 text-left">Fecha/Hora Ingreso</th>
+            <th className="px-4 py-3 text-left">Fecha/Hora Salida</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {registros.map((reg) => (
+            <tr key={`${reg.id}-${reg.fechaRegistro}`} className="hover:bg-gray-50">
+              <td className="px-4 py-3 text-gray-600">{reg.fechaRegistro}</td>
+              <td className="px-4 py-3 font-mono">{formatRUT(reg.identificador)}</td>
+              <td className="px-4 py-3 font-medium text-gray-900 min-w-[160px]">{reg.nombre}</td>
+              <td className="px-4 py-3 text-gray-500 min-w-[200px]">{reg.obra}</td>
+              <td className="px-4 py-3 text-gray-400 font-mono text-xs">{reg.centroCosto ?? "—"}</td>
+              <td className="px-4 py-3 text-gray-500 min-w-[160px]">{reg.contratista ?? "—"}</td>
+              <td className="px-4 py-3 font-mono text-xs text-gray-700">{fmtDt(reg.fechaIngreso)}</td>
+              <td className="px-4 py-3 font-mono text-xs text-gray-700">{fmtDt(reg.fechaSalida)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
