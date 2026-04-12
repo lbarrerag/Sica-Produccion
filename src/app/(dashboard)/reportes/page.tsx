@@ -40,14 +40,6 @@ export default function ReportesPage() {
   const [buscado, setBuscado] = useState(false)
   const [paginaActual, setPaginaActual] = useState(1)
   const [eliminando, setEliminando] = useState(false)
-  const [role, setRole] = useState<string>("")
-
-  useEffect(() => {
-    fetch("/api/auth/session")
-      .then((r) => r.json())
-      .then((s) => setRole(s?.user?.role ?? ""))
-      .catch(() => {})
-  }, [])
 
   useEffect(() => {
     async function cargar() {
@@ -175,7 +167,7 @@ export default function ReportesPage() {
               Exportar Excel
             </button>
           )}
-          {buscado && registros.length > 0 && role === "ADMINISTRADOR" && (
+          {buscado && registros.length > 0 && (
             <button type="button" onClick={eliminarMasivo} disabled={eliminando}
               className="inline-flex h-9 items-center rounded-md border border-red-200 bg-white px-5 text-sm font-medium text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50">
               {eliminando ? "Eliminando…" : `Eliminar ${registros.length.toLocaleString("es-CL")} registros`}
