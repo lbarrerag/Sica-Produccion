@@ -3,14 +3,39 @@ import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { ImportarExcel } from "@/components/ui/ImportarExcel"
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton"
+import { Paginacion } from "@/components/ui/Paginacion"
 
-export default async function EspecialidadesPage() {
+const POR_PAGINA = 50
+
+interface Props {
+  searchParams: Promise<{ pagina?: string; q?: string }>
+}
+
+export default async function EspecialidadesPage({ searchParams }: Props) {
   await requireRole("ADMINISTRADOR")
 
-  const especialidades = await prisma.especialidad.findMany({
-    where: { estado: "VIGENTE" },
-    orderBy: { nombre: "asc" },
-  })
+  const { pagina, q } = await searchParams
+  const paginaActual = Math.max(1, parseInt(pagina ?? "1", 10) || 1)
+  const busqueda = q?.trim() ?? ""
+
+  const where = {
+    estado: "VIGENTE" as const,
+    ...(busqueda
+      ? { nombre: { contains: busqueda, mode: "insensitive" as const } }
+      : {}),
+  }
+
+  const [total, especialidades] = await Promise.all([
+    prisma.especialidad.count({ where }),
+    prisma.especialidad.findMany({
+      where,
+      orderBy: { nombre: "asc" },
+      skip: (paginaActual - 1) * POR_PAGINA,
+      take: POR_PAGINA,
+    }),
+  ])
+
+  const totalPaginas = Math.ceil(total / POR_PAGINA)
 
   return (
     <div className="space-y-6">
@@ -23,6 +48,20 @@ export default async function EspecialidadesPage() {
         </div>
         <ImportarExcel endpoint="/api/import/especialidades" label="Importar Excel" />
       </div>
+
+      {/* Búsqueda */}
+      <form method="GET" className="flex gap-2">
+        <input
+          name="q"
+          defaultValue={busqueda}
+          placeholder="Buscar especialidad…"
+          className="h-9 flex-1 max-w-xs rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40"
+        />
+        <button type="submit" className="inline-flex h-9 items-center rounded-md border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50">Buscar</button>
+        {busqueda && (
+          <a href="/especialidades" className="inline-flex h-9 items-center rounded-md px-3 text-sm text-gray-500 hover:bg-gray-100">Limpiar</a>
+        )}
+      </form>
 
       {/* Formulario nueva especialidad */}
       <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -75,18 +114,17 @@ export default async function EspecialidadesPage() {
             Especialidades registradas
           </h2>
           <p className="mt-0.5 text-sm text-gray-500">
-            {especialidades.length}{" "}
-            {especialidades.length === 1
-              ? "especialidad vigente"
-              : "especialidades vigentes"}
+            {total}{" "}
+            {total === 1 ? "especialidad vigente" : "especialidades vigentes"}
           </p>
         </div>
 
         {especialidades.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-gray-500">
-            No hay especialidades registradas.
+            {busqueda ? `Sin resultados para "${busqueda}".` : "No hay especialidades registradas."}
           </div>
         ) : (
+          <>
           <ul className="divide-y divide-gray-100">
             {especialidades.map((esp) => (
               <li
@@ -145,6 +183,15 @@ export default async function EspecialidadesPage() {
               </li>
             ))}
           </ul>
+          <Paginacion
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            total={total}
+            por_pagina={POR_PAGINA}
+            basePath="/especialidades"
+            extraParams={busqueda ? `q=${encodeURIComponent(busqueda)}` : ""}
+          />
+          </>
         )}
       </div>
     </div>
