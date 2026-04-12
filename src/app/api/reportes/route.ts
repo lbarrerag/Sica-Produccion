@@ -1,6 +1,44 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+function buildWhere(params: URLSearchParams) {
+  const fechaDesde    = params.get("fechaDesde")
+  const fechaHasta    = params.get("fechaHasta")
+  const obraId        = params.get("obraId")
+  const contratistaId = params.get("contratistaId")
+  const trabajador    = params.get("trabajador")?.trim() ?? ""
+
+  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {}
+
+  if (fechaDesde) {
+    where.fechaHora = {
+      gte: new Date(`${fechaDesde}T00:00:00.000Z`),
+      ...(hasta && { lte: hasta }),
+    }
+  } else if (hasta) {
+    where.fechaHora = { lte: hasta }
+  }
+
+  if (obraId)        where.obraId        = Number(obraId)
+  if (contratistaId) where.contratistaId = Number(contratistaId)
+
+  // Filtrar por nombre del trabajador O por RUT (identificador)
+  if (trabajador) {
+    // Normalizar: quitar puntos y guiones para comparar RUT desnudo
+    const rutLimpio = trabajador.replace(/[.\-]/g, "")
+    where.OR = [
+      { trabajador: { nombre: { contains: trabajador, mode: "insensitive" } } },
+      { identificador: { contains: rutLimpio,   mode: "insensitive" } },
+    ]
+  }
+
+  return where
+}
+
 // ── Eliminación masiva ───────────────────────────────────────────────────────
 export async function DELETE(request: Request) {
   const session = await auth()
@@ -9,27 +47,7 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Acceso denegado" }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
-  const fechaDesde = searchParams.get("fechaDesde")
-  const fechaHasta = searchParams.get("fechaHasta")
-  const obraId = searchParams.get("obraId")
-  const contratistaId = searchParams.get("contratistaId")
-
-  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
-
-  const { count } = await prisma.registroAcceso.deleteMany({
-    where: {
-      ...(fechaDesde && {
-        fechaHora: {
-          gte: new Date(`${fechaDesde}T00:00:00.000Z`),
-          ...(hasta && { lte: hasta }),
-        },
-      }),
-      ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
-      ...(obraId && { obraId: Number(obraId) }),
-      ...(contratistaId && { contratistaId: Number(contratistaId) }),
-    },
-  })
-
+  const { count } = await prisma.registroAcceso.deleteMany({ where: buildWhere(searchParams) })
   return Response.json({ eliminados: count })
 }
 
@@ -42,30 +60,13 @@ export async function GET(request: Request) {
     return Response.json({ error: "Acceso denegado" }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
-  const fechaDesde = searchParams.get("fechaDesde")
-  const fechaHasta = searchParams.get("fechaHasta")
-  const obraId = searchParams.get("obraId")
-  const contratistaId = searchParams.get("contratistaId")
-
-  // fechaHasta incluye todo el día
-  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
 
   const raw = await prisma.registroAcceso.findMany({
-    where: {
-      ...(fechaDesde && {
-        fechaHora: {
-          gte: new Date(`${fechaDesde}T00:00:00.000Z`),
-          ...(hasta && { lte: hasta }),
-        },
-      }),
-      ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
-      ...(obraId && { obraId: Number(obraId) }),
-      ...(contratistaId && { contratistaId: Number(contratistaId) }),
-    },
+    where: buildWhere(searchParams),
     include: {
       trabajador: { select: { nombre: true } },
-      obra: { select: { nombre: true, centroCosto: true } },
-      contratista: { select: { nombre: true } },
+      obra:       { select: { nombre: true, centroCosto: true } },
+      contratista:{ select: { nombre: true } },
     },
     orderBy: { fechaHora: "asc" },
   })
@@ -73,47 +74,44 @@ export async function GET(request: Request) {
   // ── Agrupar por (identificador, obraId, fecha-día) ───────────────────────
   type Fila = {
     id: number
-    fechaRegistro: string         // YYYY-MM-DD
+    fechaRegistro: string
     identificador: string
     nombre: string
     obra: string
     centroCosto: string | null
     contratista: string | null
-    fechaIngreso: string | null   // ISO string
-    fechaSalida: string | null    // ISO string
+    fechaIngreso: string | null
+    fechaSalida: string | null
   }
 
   const mapaFilas = new Map<string, Fila>()
 
   for (const r of raw) {
-    const dia = r.fechaHora.toISOString().slice(0, 10)           // YYYY-MM-DD
+    const dia   = r.fechaHora.toISOString().slice(0, 10)
     const clave = `${r.identificador}||${r.obraId}||${dia}`
 
     if (!mapaFilas.has(clave)) {
       mapaFilas.set(clave, {
-        id: r.id,
-        fechaRegistro: dia,
-        identificador: r.identificador,
-        nombre: r.trabajador.nombre,
-        obra: r.obra.nombre,
-        centroCosto: r.obra.centroCosto ?? null,
-        contratista: r.contratista?.nombre ?? null,
+        id:           r.id,
+        fechaRegistro:r.fechaHora.toISOString().slice(0, 10),
+        identificador:r.identificador,
+        nombre:       r.trabajador.nombre,
+        obra:         r.obra.nombre,
+        centroCosto:  r.obra.centroCosto ?? null,
+        contratista:  r.contratista?.nombre ?? null,
         fechaIngreso: null,
-        fechaSalida: null,
+        fechaSalida:  null,
       })
     }
 
     const fila = mapaFilas.get(clave)!
     if (r.tipo === "ENTRADA") {
-      // Guardar la primera ENTRADA del día
       if (!fila.fechaIngreso) fila.fechaIngreso = r.fechaHora.toISOString()
     } else {
-      // Guardar la última SALIDA del día
       fila.fechaSalida = r.fechaHora.toISOString()
     }
   }
 
-  // Ordenar por fecha desc, luego nombre asc
   const filas = Array.from(mapaFilas.values()).sort((a, b) => {
     const dif = b.fechaRegistro.localeCompare(a.fechaRegistro)
     return dif !== 0 ? dif : a.nombre.localeCompare(b.nombre)

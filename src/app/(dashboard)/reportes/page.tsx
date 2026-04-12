@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { formatRUT } from "@/lib/rut"
+import { ComboBox } from "@/components/ui/ComboBox"
 
 interface Obra { id: number; nombre: string }
 interface Contratista { id: number; nombre: string }
@@ -33,6 +34,7 @@ export default function ReportesPage() {
   const [fechaHasta, setFechaHasta] = useState("")
   const [obraId, setObraId] = useState("")
   const [contratistaId, setContratistaId] = useState("")
+  const [trabajador, setTrabajador] = useState("")
   const [obras, setObras] = useState<Obra[]>([])
   const [contratistas, setContratistas] = useState<Contratista[]>([])
   const [registros, setRegistros] = useState<FilaReporte[]>([])
@@ -61,6 +63,7 @@ export default function ReportesPage() {
     if (fechaHasta) params.set("fechaHasta", fechaHasta)
     if (obraId) params.set("obraId", obraId)
     if (contratistaId) params.set("contratistaId", contratistaId)
+    if (trabajador.trim()) params.set("trabajador", trabajador.trim())
     return params
   }
 
@@ -127,32 +130,50 @@ export default function ReportesPage() {
       {/* Filtros */}
       <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
         <h2 className="mb-4 text-sm font-semibold text-gray-700">Filtros</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Fecha desde */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-600">Fecha desde</label>
             <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)}
               className="block h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40" />
           </div>
+          {/* Fecha hasta */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-600">Fecha hasta</label>
             <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)}
               className="block h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40" />
           </div>
+          {/* Trabajador */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-gray-600">Trabajador (nombre o RUT)</label>
+            <input
+              type="text"
+              value={trabajador}
+              onChange={(e) => setTrabajador(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && buscar()}
+              placeholder="Ej: Juan Pérez o 12.345.678-9"
+              className="block h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40"
+            />
+          </div>
+          {/* Obra (ComboBox con búsqueda) */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-600">Obra</label>
-            <select value={obraId} onChange={(e) => setObraId(e.target.value)}
-              className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40">
-              <option value="">Todas las obras</option>
-              {obras.map((o) => <option key={o.id} value={String(o.id)}>{o.nombre}</option>)}
-            </select>
+            <ComboBox
+              opciones={obras}
+              valor={obraId}
+              onChange={setObraId}
+              placeholder="Todas las obras"
+            />
           </div>
+          {/* Contratista (ComboBox con búsqueda) */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-gray-600">Contratista</label>
-            <select value={contratistaId} onChange={(e) => setContratistaId(e.target.value)}
-              className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#0e7f6d]/40">
-              <option value="">Todos los contratistas</option>
-              {contratistas.map((c) => <option key={c.id} value={String(c.id)}>{c.nombre}</option>)}
-            </select>
+            <ComboBox
+              opciones={contratistas}
+              valor={contratistaId}
+              onChange={setContratistaId}
+              placeholder="Todos los contratistas"
+            />
           </div>
         </div>
 
