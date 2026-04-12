@@ -212,10 +212,10 @@ export default function ReportesPage() {
                         <td className="px-4 py-3 font-mono text-xs text-gray-400">{reg.id}</td>
                         <td className="px-4 py-3 text-gray-600">{reg.fechaRegistro}</td>
                         <td className="px-4 py-3 font-mono">{formatRUT(reg.identificador)}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{reg.nombre}</td>
-                        <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{reg.obra}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900 min-w-[160px]">{reg.nombre}</td>
+                        <td className="px-4 py-3 text-gray-500 min-w-[200px]">{reg.obra}</td>
                         <td className="px-4 py-3 text-gray-400 font-mono text-xs">{reg.centroCosto ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 max-w-[160px] truncate">{reg.contratista ?? "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 min-w-[160px]">{reg.contratista ?? "—"}</td>
                         <td className="px-4 py-3 font-mono text-xs text-gray-700">{fmtDt(reg.fechaIngreso)}</td>
                         <td className="px-4 py-3 font-mono text-xs text-gray-700">{fmtDt(reg.fechaSalida)}</td>
                       </tr>
