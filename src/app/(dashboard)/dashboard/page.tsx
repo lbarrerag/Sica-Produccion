@@ -33,24 +33,39 @@ export type DatoDia = {
 export default async function DashboardPage() {
   await requireAuth()
 
-  // ── Zona horaria Chile (UTC-3 aprox.) ──────────────────────────────────────
+  // ── Zona horaria Chile con DST correcto ───────────────────────────────────
   const ahora = new Date()
 
-  // Inicio del día en hora Chile: medianoche Chile = UTC+3h
+  // Chile: UTC-3 en verano (oct–~6 abr), UTC-4 en invierno (~6 abr–~6 oct)
+  function chileOffset(d: Date): number {
+    const mes = d.getUTCMonth() + 1
+    const dia = d.getUTCDate()
+    const invierno =
+      (mes > 4 && mes < 10) ||
+      (mes === 4 && dia >= 6) ||
+      (mes === 10 && dia < 6)
+    return invierno ? 4 : 3
+  }
+
+  const offset = chileOffset(ahora)
+
+  // Fecha actual en hora Chile (para determinar el "día de hoy" en Chile)
+  const chileAhora = new Date(ahora.getTime() - offset * 60 * 60 * 1000)
+
+  // Medianoche de hoy en Chile → convertida a UTC
   const inicioDia = new Date(
     Date.UTC(
-      ahora.getUTCFullYear(),
-      ahora.getUTCMonth(),
-      ahora.getUTCDate()
-    ) -
-      3 * 60 * 60 * 1000
+      chileAhora.getUTCFullYear(),
+      chileAhora.getUTCMonth(),
+      chileAhora.getUTCDate()
+    ) + offset * 60 * 60 * 1000
   )
 
-  const hace7dias  = new Date(ahora.getTime() - 7  * 24 * 60 * 60 * 1000)
-  const hace14dias = new Date(ahora.getTime() - 14 * 24 * 60 * 60 * 1000)
+  const hace7dias   = new Date(ahora.getTime() - 7  * 24 * 60 * 60 * 1000)
+  const hace14dias  = new Date(ahora.getTime() - 14 * 24 * 60 * 60 * 1000)
   const hace10horas = new Date(ahora.getTime() - 10 * 60 * 60 * 1000)
   // Inicio de ayer en hora Chile
-  const inicioAyer = new Date(inicioDia.getTime() - 24 * 60 * 60 * 1000)
+  const inicioAyer  = new Date(inicioDia.getTime() - 24 * 60 * 60 * 1000)
 
   // ── Queries paralelas ──────────────────────────────────────────────────────
   const [
@@ -246,7 +261,7 @@ export default async function DashboardPage() {
   }
 
   for (const r of datos14DiasRaw) {
-    const fechaChile = new Date(r.fechaHora.getTime() - 3 * 60 * 60 * 1000)
+    const fechaChile = new Date(r.fechaHora.getTime() - offset * 60 * 60 * 1000)
     const key = fechaChile.toISOString().slice(0, 10)
     if (conteosPorDia.has(key)) {
       conteosPorDia.set(key, (conteosPorDia.get(key) ?? 0) + 1)
@@ -304,7 +319,7 @@ export default async function DashboardPage() {
   // ── Helpers de formato ─────────────────────────────────────────────────────
   function fmtHora(d: Date) {
     const pad = (n: number) => String(n).padStart(2, "0")
-    const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
+    const local = new Date(d.getTime() - offset * 60 * 60 * 1000)
     return `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`
   }
 
