@@ -55,7 +55,7 @@ export default function AccesosRecientes({ registros }: AccesosRecientesProps) {
               {formatRUT(registro.identificador)}
             </TableCell>
             <TableCell>{registro.trabajador.nombre}</TableCell>
-            <TableCell className="max-w-[200px] truncate">
+            <TableCell className="min-w-[200px]">
               {registro.obra.nombre}
             </TableCell>
             <TableCell>
