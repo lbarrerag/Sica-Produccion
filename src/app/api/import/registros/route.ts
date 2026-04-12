@@ -5,20 +5,37 @@ import ExcelJS from "exceljs"
 
 const BATCH = 200 // registros por lote de insertMany
 
-/* Convierte un valor de celda de ExcelJS a un objeto Date combinando fecha + hora.
-   ExcelJS puede devolver:
-   - Date (para fechas/horas)
-   - string "HH:MM:SS"
-   - number (fracción del día para horas de Excel serial)
-*/
+/**
+ * Retorna el offset en horas de Chile Continental respecto a UTC.
+ * Chile usa UTC-3 en horario de verano (oct–abr ~primer sábado)
+ * y UTC-4 en horario de invierno (abr–oct).
+ * Referencia: America/Santiago (IANA).
+ */
+function chileOffsetHoras(fecha: Date): number {
+  const mes = fecha.getUTCMonth() + 1 // 1-12
+  const dia = fecha.getUTCDate()
+  // Horario de invierno: desde ~primer sábado de abril hasta ~primer sábado de octubre → UTC-4
+  // Horario de verano : desde ~primer sábado de octubre hasta ~primer sábado de abril → UTC-3
+  // Aproximación conservadora: abril completo y septiembre completo son bordes; usamos día 6 como corte
+  const invierno =
+    (mes > 4 && mes < 10) ||         // mayo–septiembre completo
+    (mes === 4 && dia >= 6) ||        // abril desde el 6
+    (mes === 10 && dia < 6)           // octubre antes del 6
+  return invierno ? 4 : 3
+}
+
+/**
+ * Combina una fecha base (Date de Excel, en UTC midnight) con la hora local de Chile
+ * y devuelve un Date en UTC correcto.
+ * ExcelJS puede entregar la hora como: Date, string "HH:MM:SS" o número (fracción del día).
+ */
 function parseFechaHora(fecha: Date, horaCell: ExcelJS.CellValue): Date | null {
   if (!horaCell) return null
 
-  let hh = 0,
-    mm = 0,
-    ss = 0
+  let hh = 0, mm = 0, ss = 0
 
   if (horaCell instanceof Date) {
+    // ExcelJS devuelve horas como Date con base 1899-12-30; la parte UTC es la hora local
     hh = horaCell.getUTCHours()
     mm = horaCell.getUTCMinutes()
     ss = horaCell.getUTCSeconds()
@@ -39,8 +56,10 @@ function parseFechaHora(fecha: Date, horaCell: ExcelJS.CellValue): Date | null {
 
   if (isNaN(hh) || isNaN(mm) || isNaN(ss)) return null
 
+  // La hora del Excel es hora local Chile. Convertimos a UTC sumando el offset.
+  // setUTCHours maneja desbordamiento automáticamente (ej: 23+4 → siguiente día a las 03).
   const dt = new Date(fecha)
-  dt.setUTCHours(hh, mm, ss, 0)
+  dt.setUTCHours(hh + chileOffsetHoras(fecha), mm, ss, 0)
   return dt
 }
 
