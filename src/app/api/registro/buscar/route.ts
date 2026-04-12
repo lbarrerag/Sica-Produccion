@@ -36,18 +36,15 @@ export async function GET(request: Request) {
     ultimoRegistro?.tipo === "ENTRADA" ? "SALIDA" : "ENTRADA"
 
   return Response.json({
-    trabajador: {
-      id: trabajador.id,
-      nombre: trabajador.nombre,
-      identificador: trabajador.identificador,
-      nombreContratista: trabajador.contratista?.nombre ?? null,
-      especialidad: trabajador.especialidad ?? null,
-    },
+    id: trabajador.id,
+    nombre: trabajador.nombre,
+    identificador: trabajador.identificador,
+    nombreContratista: trabajador.contratista?.nombre ?? null,
+    especialidad: trabajador.especialidad ?? null,
     ultimoRegistro: ultimoRegistro
       ? {
           tipo: ultimoRegistro.tipo,
-          fechaHora: ultimoRegistro.fechaHora,
-          obraId: ultimoRegistro.obraId,
+          fechaHora: ultimoRegistro.fechaHora.toISOString(),
         }
       : null,
     accionSugerida,
