@@ -64,7 +64,7 @@ export default function TopObras({ hoy, ayer, semana }: Props) {
           <p className="text-sm text-gray-500 text-center py-4">Sin registros</p>
         ) : (
           datos.map((obra, i) => {
-            const promedioDiario = Math.round(obra.ingresos / 7)
+            const promedioDiario = Math.round(obra.ingresos / 5.5)
             return (
               <div key={i}>
                 <div className="flex items-start justify-between gap-3 text-sm mb-1">
