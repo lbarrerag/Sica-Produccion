@@ -26,6 +26,7 @@ export default function TopObras({ hoy, ayer, semana }: Props) {
 
   const datos = periodo === "hoy" ? hoy : periodo === "ayer" ? ayer : semana
   const max = datos[0]?.ingresos ?? 1
+  const esSemana = periodo === "semana"
 
   return (
     <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -34,7 +35,9 @@ export default function TopObras({ hoy, ayer, semana }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Top obras</h2>
-            <p className="mt-0.5 text-sm text-gray-500">Por cantidad de ingresos</p>
+            <p className="mt-0.5 text-sm text-gray-500">
+              {esSemana ? "Total semanal y promedio diario" : "Por cantidad de ingresos"}
+            </p>
           </div>
           <div className="flex rounded-lg border border-gray-200 bg-white p-0.5 gap-0.5">
             {TABS.map((tab) => (
@@ -60,27 +63,36 @@ export default function TopObras({ hoy, ayer, semana }: Props) {
         {datos.length === 0 ? (
           <p className="text-sm text-gray-500 text-center py-4">Sin registros</p>
         ) : (
-          datos.map((obra, i) => (
-            <div key={i}>
-              <div className="flex justify-between text-sm mb-1">
-                <span
-                  className="font-medium text-gray-900 truncate max-w-[180px]"
-                  title={obra.nombre}
-                >
-                  {obra.nombre}
-                </span>
-                <span className="font-semibold text-[#0e7f6d] ml-2 flex-shrink-0">
-                  {obra.ingresos}
-                </span>
+          datos.map((obra, i) => {
+            const promedioDiario = Math.round(obra.ingresos / 7)
+            return (
+              <div key={i}>
+                <div className="flex items-start justify-between gap-3 text-sm mb-1">
+                  {/* Nombre completo, sin truncar */}
+                  <span className="font-medium text-gray-900 leading-tight">
+                    {obra.nombre}
+                  </span>
+                  {/* Contador */}
+                  <div className="flex-shrink-0 text-right">
+                    <span className="font-semibold text-[#0e7f6d]">
+                      {obra.ingresos}
+                    </span>
+                    {esSemana && (
+                      <div className="text-xs text-gray-400 leading-tight">
+                        ~{promedioDiario}/día
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-[#0e7f6d] transition-all duration-300"
+                    style={{ width: `${Math.round((obra.ingresos / max) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full bg-[#0e7f6d] transition-all duration-300"
-                  style={{ width: `${Math.round((obra.ingresos / max) * 100)}%` }}
-                />
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>
