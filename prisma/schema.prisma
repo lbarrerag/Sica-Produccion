@@ -113,6 +113,7 @@ model Especialidad {
 
 model Trabajador {
   id                       Int              @id @default(autoincrement())
+  idExterno                Int?             @map("id_externo")
   identificador            String           @unique
   nombre                   String
   contratistaId            Int?             @map("id_contratista")

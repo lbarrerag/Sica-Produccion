@@ -145,7 +145,7 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-gray-400">ID</TableHead>
+                  <TableHead className="text-gray-400">ID Ext.</TableHead>
                   <TableHead>RUT</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Contratista</TableHead>
@@ -156,7 +156,7 @@ export default async function TrabajadoresPage({ searchParams }: Props) {
               <TableBody>
                 {trabajadores.map((t) => (
                   <TableRow key={t.id}>
-                    <TableCell className="font-mono text-xs text-gray-400">{t.id}</TableCell>
+                    <TableCell className="font-mono text-xs text-gray-400">{t.idExterno ?? "—"}</TableCell>
                     <TableCell className="font-mono text-sm">
                       {formatRUT(t.identificador)}
                     </TableCell>

@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
 
     const idx = (name: string) =>
       headers.findIndex((h) => h.toLowerCase().includes(name.toLowerCase()))
+    // Columna "id" — buscar exactamente la cabecera "id" (primera columna del Excel del sistema anterior)
+    const iId = headers.findIndex((h) => h.toLowerCase() === "id")
     const iIdentificador = idx("identificador")
     const iNombre = idx("nombre")
     // "Identificador Contratista" — buscamos la cabecera que tiene "contratista" e "identif"
@@ -69,6 +71,8 @@ export async function POST(request: NextRequest) {
       const identificador = val(iIdentificador)
       const nombre = val(iNombre)
       if (!identificador || !nombre) continue
+      const idExternoRaw = iId >= 0 ? parseInt(val(iId), 10) : NaN
+      const idExterno = isNaN(idExternoRaw) ? null : idExternoRaw
       const estadoRaw = val(iEstado).toLowerCase()
       const estado = estadoRaw === "vigente" ? "VIGENTE" : "ELIMINADO"
       const direccion = val(iDireccion) || null
@@ -107,6 +111,7 @@ export async function POST(request: NextRequest) {
             especialidad,
             telefono,
             fechaNacimiento,
+            ...(idExterno !== null && { idExterno }),
           },
           create: {
             identificador,
@@ -120,6 +125,7 @@ export async function POST(request: NextRequest) {
             especialidad,
             telefono,
             fechaNacimiento,
+            ...(idExterno !== null && { idExterno }),
           },
         })
         importados++
