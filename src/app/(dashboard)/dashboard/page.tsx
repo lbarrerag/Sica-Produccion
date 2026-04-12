@@ -11,6 +11,7 @@ import {
 import StatsCard from "@/components/dashboard/StatsCard"
 import AccesosRecientes from "@/components/dashboard/AccesosRecientes"
 import GraficoBarras from "@/components/dashboard/GraficoBarras"
+import TopObras from "@/components/dashboard/TopObras"
 
 export type FilaAcceso = {
   id: number
@@ -45,9 +46,11 @@ export default async function DashboardPage() {
       3 * 60 * 60 * 1000
   )
 
-  const hace7dias = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const hace7dias  = new Date(ahora.getTime() - 7  * 24 * 60 * 60 * 1000)
   const hace14dias = new Date(ahora.getTime() - 14 * 24 * 60 * 60 * 1000)
   const hace10horas = new Date(ahora.getTime() - 10 * 60 * 60 * 1000)
+  // Inicio de ayer en hora Chile
+  const inicioAyer = new Date(inicioDia.getTime() - 24 * 60 * 60 * 1000)
 
   // ── Queries paralelas ──────────────────────────────────────────────────────
   const [
@@ -58,6 +61,8 @@ export default async function DashboardPage() {
     activosEstaSemanaRaw,
     entradasHoyConTrabajador,
     topObrasHoyRaw,
+    topObrasAyerRaw,
+    topObrasSemanaRaw,
     datos14DiasRaw,
   ] = await Promise.all([
     // 1. Obras activas
@@ -115,10 +120,25 @@ export default async function DashboardPage() {
     // 7. Top obras hoy por ingresos
     prisma.registroAcceso.groupBy({
       by: ["obraId"],
-      where: {
-        fechaHora: { gte: inicioDia },
-        tipo: "ENTRADA",
-      },
+      where: { fechaHora: { gte: inicioDia }, tipo: "ENTRADA" },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    }),
+
+    // 7b. Top obras ayer
+    prisma.registroAcceso.groupBy({
+      by: ["obraId"],
+      where: { fechaHora: { gte: inicioAyer, lt: inicioDia }, tipo: "ENTRADA" },
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 5,
+    }),
+
+    // 7c. Top obras semana (últimos 7 días)
+    prisma.registroAcceso.groupBy({
+      by: ["obraId"],
+      where: { fechaHora: { gte: hace7dias }, tipo: "ENTRADA" },
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
       take: 5,
@@ -189,21 +209,28 @@ export default async function DashboardPage() {
   }
   alertasPermananecia.sort((a, b) => b.horasAdentro - a.horasAdentro)
 
-  // ── Top 5 obras hoy — obtener nombres ─────────────────────────────────────
-  let topObrasHoy: Array<{ nombre: string; ingresos: number }> = []
-  if (topObrasHoyRaw.length > 0) {
-    const obraIds = topObrasHoyRaw.map((r) => r.obraId)
+  // ── Top obras — resolver nombres para los 3 períodos ─────────────────────
+  async function resolverNombresObras(
+    raw: Array<{ obraId: number; _count: { id: number } }>
+  ) {
+    if (raw.length === 0) return []
+    const ids = raw.map((r) => r.obraId)
     const obras = await prisma.obra.findMany({
-      where: { id: { in: obraIds } },
+      where: { id: { in: ids } },
       select: { id: true, nombre: true },
     })
     const obraMap = new Map(obras.map((o) => [o.id, o.nombre]))
-    topObrasHoy = topObrasHoyRaw.map((r) => ({
+    return raw.map((r) => ({
       nombre: obraMap.get(r.obraId) ?? `Obra ${r.obraId}`,
       ingresos: r._count.id,
     }))
   }
-  const maxIngresosObra = topObrasHoy[0]?.ingresos ?? 1
+
+  const [topObrasHoy, topObrasAyer, topObrasSemana] = await Promise.all([
+    resolverNombresObras(topObrasHoyRaw),
+    resolverNombresObras(topObrasAyerRaw),
+    resolverNombresObras(topObrasSemanaRaw),
+  ])
 
   // ── Gráfico 14 días ────────────────────────────────────────────────────────
   // Agrupar por día en hora Chile (UTC-3)
@@ -332,50 +359,8 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Top 5 obras hoy */}
-        <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-          <div className="border-b border-gray-200 px-6 py-4 bg-gray-50 rounded-t-xl">
-            <h2 className="text-base font-semibold text-gray-900">
-              Top obras hoy
-            </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
-              Por cantidad de ingresos
-            </p>
-          </div>
-          <div className="p-6 space-y-4">
-            {topObrasHoy.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">
-                Sin registros hoy
-              </p>
-            ) : (
-              topObrasHoy.map((obra, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span
-                      className="font-medium text-gray-900 truncate max-w-[180px]"
-                      title={obra.nombre}
-                    >
-                      {obra.nombre}
-                    </span>
-                    <span className="font-semibold text-[#0e7f6d] ml-2">
-                      {obra.ingresos}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full bg-[#0e7f6d]"
-                      style={{
-                        width: `${Math.round(
-                          (obra.ingresos / maxIngresosObra) * 100
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        {/* Top obras con selector Hoy / Ayer / Semana */}
+        <TopObras hoy={topObrasHoy} ayer={topObrasAyer} semana={topObrasSemana} />
       </div>
 
       {/* ── Alertas + Dejaron de trabajar ── */}
