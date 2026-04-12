@@ -14,6 +14,7 @@ import {
   BarChart2,
   Settings,
   LogOut,
+  Upload,
 } from "lucide-react"
 
 type NavItem = {
@@ -63,6 +64,11 @@ const ALL_NAV_ITEMS = {
     href: "/admin/usuarios",
     icon: <Settings size={18} />,
   },
+  importar: {
+    label: "Importar Historial",
+    href: "/admin/importar",
+    icon: <Upload size={18} />,
+  },
 } as const
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
@@ -75,6 +81,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     ALL_NAV_ITEMS.especialidades,
     ALL_NAV_ITEMS.reportes,
     ALL_NAV_ITEMS.admin,
+    ALL_NAV_ITEMS.importar,
   ],
   SUPERVISOR: [
     ALL_NAV_ITEMS.dashboard,
