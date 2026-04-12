@@ -1,67 +1,78 @@
 import ExcelJS from "exceljs"
-import { formatFecha } from "@/lib/utils"
 
-type RegistroRow = {
-  fechaHora: Date
+type FilaReporte = {
+  id: number
+  fechaRegistro: string
   identificador: string
   nombre: string
-  nombreContratista: string | null
   obra: string
-  tipo: "ENTRADA" | "SALIDA"
+  centroCosto: string | null
+  contratista: string | null
+  fechaIngreso: string | null
+  fechaSalida: string | null
 }
 
-export async function generarExcelRegistros(
-  registros: RegistroRow[]
-): Promise<Buffer> {
+function fmt(iso: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  )
+}
+
+export async function generarExcelRegistros(filas: FilaReporte[]): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet("Registros de Acceso")
 
   sheet.columns = [
-    { header: "Fecha/Hora", key: "fechaHora", width: 20 },
-    { header: "RUT", key: "identificador", width: 15 },
-    { header: "Nombre", key: "nombre", width: 30 },
-    { header: "Empresa", key: "empresa", width: 30 },
-    { header: "Obra", key: "obra", width: 30 },
-    { header: "Tipo", key: "tipo", width: 10 },
+    { header: "Id",               key: "id",           width: 10 },
+    { header: "Fecha Registro",   key: "fechaRegistro",width: 14 },
+    { header: "Identificador",    key: "identificador",width: 16 },
+    { header: "Nombre",           key: "nombre",       width: 30 },
+    { header: "Obra",             key: "obra",         width: 35 },
+    { header: "Centro Costo",     key: "centroCosto",  width: 14 },
+    { header: "Contratista",      key: "contratista",  width: 35 },
+    { header: "Fecha/Hora Ingreso", key: "fechaIngreso", width: 20 },
+    { header: "Fecha/Hora Salida",  key: "fechaSalida",  width: 20 },
   ]
 
-  // Header style
+  // Header style — verde oscuro
   sheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } }
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF1E40AF" },
-    }
-    cell.alignment = { horizontal: "center" }
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF085c4e" } }
+    cell.alignment = { horizontal: "center", vertical: "middle" }
   })
+  sheet.getRow(1).height = 20
 
-  for (const r of registros) {
+  for (const f of filas) {
     sheet.addRow({
-      fechaHora: formatFecha(r.fechaHora),
-      identificador: r.identificador,
-      nombre: r.nombre,
-      empresa: r.nombreContratista ?? "",
-      obra: r.obra,
-      tipo: r.tipo,
+      id:           f.id,
+      fechaRegistro:f.fechaRegistro,
+      identificador:f.identificador,
+      nombre:       f.nombre,
+      obra:         f.obra,
+      centroCosto:  f.centroCosto ?? "",
+      contratista:  f.contratista ?? "",
+      fechaIngreso: fmt(f.fechaIngreso),
+      fechaSalida:  fmt(f.fechaSalida),
     })
   }
 
-  // Alternate row colors
+  // Filas alternadas
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
-    row.eachCell((cell) => {
+    row.eachCell({ includeEmpty: true }, (cell) => {
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: rowNumber % 2 === 0 ? "FFF1F5F9" : "FFFFFFFF" },
+        fgColor: { argb: rowNumber % 2 === 0 ? "FFF0FAF7" : "FFFFFFFF" },
       }
-      cell.border = {
-        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
-      }
+      cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } }
     })
   })
 
-  const buffer = await workbook.xlsx.writeBuffer()
-  return Buffer.from(buffer)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return Buffer.from(await workbook.xlsx.writeBuffer() as any)
 }

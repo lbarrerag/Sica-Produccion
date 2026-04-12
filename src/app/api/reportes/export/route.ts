@@ -15,46 +15,77 @@ export async function GET(request: Request) {
   const obraId = searchParams.get("obraId")
   const contratistaId = searchParams.get("contratistaId")
 
-  const registros = await prisma.registroAcceso.findMany({
+  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
+
+  const raw = await prisma.registroAcceso.findMany({
     where: {
-      ...(fechaDesde && { fechaHora: { gte: new Date(fechaDesde) } }),
-      ...(fechaHasta && {
+      ...(fechaDesde && {
         fechaHora: {
-          ...(fechaDesde && { gte: new Date(fechaDesde) }),
-          lte: new Date(fechaHasta),
+          gte: new Date(`${fechaDesde}T00:00:00.000Z`),
+          ...(hasta && { lte: hasta }),
         },
       }),
+      ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
       ...(obraId && { obraId: Number(obraId) }),
-      ...(contratistaId && {
-        trabajador: { contratistaId: Number(contratistaId) },
-      }),
+      ...(contratistaId && { contratistaId: Number(contratistaId) }),
     },
     include: {
-      trabajador: {
-        select: { nombre: true },
-      },
-      obra: {
-        select: { nombre: true },
-      },
+      trabajador: { select: { nombre: true } },
+      obra: { select: { nombre: true, centroCosto: true } },
+      contratista: { select: { nombre: true } },
     },
-    orderBy: { fechaHora: "desc" },
+    orderBy: { fechaHora: "asc" },
   })
 
-  const rows = registros.map((r) => ({
-    fechaHora: r.fechaHora,
-    identificador: r.identificador,
-    nombre: r.trabajador.nombre,
-    nombreContratista: r.identificadorContratista,
-    obra: r.obra.nombre,
-    tipo: r.tipo,
-  }))
+  // Mismo agrupamiento que el API de reportes
+  type Fila = {
+    id: number
+    fechaRegistro: string
+    identificador: string
+    nombre: string
+    obra: string
+    centroCosto: string | null
+    contratista: string | null
+    fechaIngreso: string | null
+    fechaSalida: string | null
+  }
 
-  const buffer = await generarExcelRegistros(rows)
+  const mapa = new Map<string, Fila>()
+
+  for (const r of raw) {
+    const dia = r.fechaHora.toISOString().slice(0, 10)
+    const clave = `${r.identificador}||${r.obraId}||${dia}`
+    if (!mapa.has(clave)) {
+      mapa.set(clave, {
+        id: r.id,
+        fechaRegistro: dia,
+        identificador: r.identificador,
+        nombre: r.trabajador.nombre,
+        obra: r.obra.nombre,
+        centroCosto: r.obra.centroCosto ?? null,
+        contratista: r.contratista?.nombre ?? null,
+        fechaIngreso: null,
+        fechaSalida: null,
+      })
+    }
+    const fila = mapa.get(clave)!
+    if (r.tipo === "ENTRADA") {
+      if (!fila.fechaIngreso) fila.fechaIngreso = r.fechaHora.toISOString()
+    } else {
+      fila.fechaSalida = r.fechaHora.toISOString()
+    }
+  }
+
+  const filas = Array.from(mapa.values()).sort((a, b) => {
+    const dif = b.fechaRegistro.localeCompare(a.fechaRegistro)
+    return dif !== 0 ? dif : a.nombre.localeCompare(b.nombre)
+  })
+
+  const buffer = await generarExcelRegistros(filas)
 
   return new Response(buffer.buffer as ArrayBuffer, {
     headers: {
-      "Content-Type":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": 'attachment; filename="registros.xlsx"',
     },
   })
