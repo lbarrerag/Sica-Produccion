@@ -24,10 +24,11 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body) return Response.json({ error: "Body JSON inválido" }, { status: 400 })
 
-  const { rut, obraId, tipo } = body as {
+  const { rut, obraId, tipo, fechaHora } = body as {
     rut: string
     obraId: number
     tipo: string
+    fechaHora?: string
   }
 
   if (!rut || !obraId || !tipo) {
@@ -42,6 +43,19 @@ export async function POST(request: Request) {
       { error: "El campo tipo debe ser ENTRADA o SALIDA" },
       { status: 400 }
     )
+  }
+
+  let fechaRegistro: Date
+  if (fechaHora) {
+    fechaRegistro = new Date(fechaHora)
+    if (isNaN(fechaRegistro.getTime())) {
+      return Response.json(
+        { error: "El campo fechaHora no es una fecha válida (usa ISO 8601, ej: 2026-04-13T09:15:00)" },
+        { status: 400 }
+      )
+    }
+  } else {
+    fechaRegistro = new Date()
   }
 
   // Verificar acceso a la obra
@@ -67,7 +81,7 @@ export async function POST(request: Request) {
       obraId: Number(obraId),
       identificador: trabajador.identificador,
       tipo: tipo as "ENTRADA" | "SALIDA",
-      fechaHora: new Date(),
+      fechaHora: fechaRegistro,
       contratistaId: trabajador.contratistaId ?? undefined,
       identificadorContratista: trabajador.identificadorContratista ?? undefined,
     },

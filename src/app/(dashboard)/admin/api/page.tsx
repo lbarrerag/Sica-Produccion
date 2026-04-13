@@ -360,29 +360,31 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
         <EndpointCard
           method="POST"
           path="/api/v1/registro"
-          description="Registra una entrada o salida de un trabajador en una obra."
+          description="Registra una entrada o salida de un trabajador en una obra. Si no se envía fechaHora, se usa el momento actual del servidor."
           params={[
             { name: "rut", tipo: "string", required: true, desc: "RUT del trabajador, ej: 12345678-9" },
             { name: "obraId", tipo: "number", required: true, desc: "ID de la obra donde se registra el acceso" },
             { name: "tipo", tipo: '"ENTRADA" | "SALIDA"', required: true, desc: "Tipo de acceso a registrar" },
+            { name: "fechaHora", tipo: "string (ISO 8601)", required: false, desc: "Fecha y hora del registro. Si se omite, se usa la hora actual. Ej: 2026-04-13T09:15:00" },
           ]}
           bodyExample={`{
   "rut": "12345678-9",
   "obraId": 1,
-  "tipo": "ENTRADA"
+  "tipo": "ENTRADA",
+  "fechaHora": "2026-04-13T09:15:00"
 }`}
           responseExample={`{
   "success": true,
   "registro": {
     "id": 1503,
     "tipo": "ENTRADA",
-    "fechaHora": "2026-04-13T09:15:42.123Z",
+    "fechaHora": "2026-04-13T09:15:00.000Z",
     "trabajador": {
       "nombre": "Juan Pérez González"
     }
   }
 }`}
-          notes="El trabajador debe estar en estado VIGENTE. Retorna error 404 si no existe."
+          notes="El trabajador debe estar en estado VIGENTE. Retorna error 404 si no existe. Si fechaHora tiene un formato inválido, retorna error 400."
         />
       </div>
 
