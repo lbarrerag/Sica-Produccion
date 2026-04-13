@@ -2,15 +2,15 @@ import { prisma } from "@/lib/db"
 import { validateApiKey } from "@/lib/api-auth"
 
 /**
- * POST /api/v1/registro
- * Registra una entrada o salida de un trabajador.
+ * POST /api/v1/registro/manual
+ * Registra una entrada o salida con fecha y hora específica.
  *
  * Headers:
  *   Authorization: Bearer <apiKey>
  *   Content-Type: application/json
  *
  * Body:
- *   { "rut": "12345678-9", "obraId": 1, "tipo": "ENTRADA" | "SALIDA" }
+ *   { "rut": "12345678-9", "obraId": 1, "tipo": "ENTRADA" | "SALIDA", "fechaHora": "2026-04-13T09:15:00" }
  *
  * Respuesta 201:
  *   { "success": true, "registro": { "id", "tipo", "fechaHora", "trabajador": { "nombre" } } }
@@ -24,15 +24,16 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body) return Response.json({ error: "Body JSON inválido" }, { status: 400 })
 
-  const { rut, obraId, tipo } = body as {
+  const { rut, obraId, tipo, fechaHora } = body as {
     rut: string
     obraId: number
     tipo: string
+    fechaHora: string
   }
 
-  if (!rut || !obraId || !tipo) {
+  if (!rut || !obraId || !tipo || !fechaHora) {
     return Response.json(
-      { error: "Se requieren los campos: rut, obraId, tipo" },
+      { error: "Se requieren los campos: rut, obraId, tipo, fechaHora" },
       { status: 400 }
     )
   }
@@ -40,6 +41,14 @@ export async function POST(request: Request) {
   if (tipo !== "ENTRADA" && tipo !== "SALIDA") {
     return Response.json(
       { error: "El campo tipo debe ser ENTRADA o SALIDA" },
+      { status: 400 }
+    )
+  }
+
+  const fechaRegistro = new Date(fechaHora)
+  if (isNaN(fechaRegistro.getTime())) {
+    return Response.json(
+      { error: "fechaHora no es una fecha válida. Usa formato ISO 8601, ej: 2026-04-13T09:15:00" },
       { status: 400 }
     )
   }
@@ -67,7 +76,7 @@ export async function POST(request: Request) {
       obraId: Number(obraId),
       identificador: trabajador.identificador,
       tipo: tipo as "ENTRADA" | "SALIDA",
-      fechaHora: new Date(),
+      fechaHora: fechaRegistro,
       contratistaId: trabajador.contratistaId ?? undefined,
       identificadorContratista: trabajador.identificadorContratista ?? undefined,
     },
