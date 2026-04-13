@@ -221,12 +221,30 @@ jobs:
           DEPLOY_PASS: ${{ secrets.AZURE_DEPLOY_PASS }}
           WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
         run: |
-          # Las credenciales se pasan como env vars para que bash no interprete el '$' del username
-          curl -X POST \
-            --fail \
-            --silent \
-            --show-error \
-            -u "$DEPLOY_USER:$DEPLOY_PASS" \
-            -H "Content-Type: application/zip" \
-            --data-binary @deploy.zip \
-            "https://$WEBAPP_NAME.scm.azurewebsites.net/api/zipdeploy?isAsync=true&author=GitHub+Actions"
+          # Reintentos para manejar 409 (deployment en curso en Azure)
+          MAX_ATTEMPTS=5
+          WAIT_SECONDS=30
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Intento $attempt de $MAX_ATTEMPTS..."
+            HTTP_STATUS=$(curl -X POST \
+              --silent \
+              --show-error \
+              -w "%{http_code}" \
+              -o /tmp/kudu_response.txt \
+              -u "$DEPLOY_USER:$DEPLOY_PASS" \
+              -H "Content-Type: application/zip" \
+              --data-binary @deploy.zip \
+              "https://$WEBAPP_NAME.scm.azurewebsites.net/api/zipdeploy?isAsync=true&author=GitHub+Actions")
+            echo "HTTP Status: $HTTP_STATUS"
+            cat /tmp/kudu_response.txt || true
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "202" ]; then
+              echo "Deploy enviado correctamente."
+              break
+            elif [ "$HTTP_STATUS" = "409" ] && [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "409 Conflict: hay un deployment en curso. Esperando ${WAIT_SECONDS}s..."
+              sleep $WAIT_SECONDS
+            else
+              echo "Error inesperado en el deploy (HTTP $HTTP_STATUS)."
+              exit 1
+            fi
+          done
