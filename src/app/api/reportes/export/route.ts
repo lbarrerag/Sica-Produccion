@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { generarExcelRegistros } from "@/lib/excel"
 import { getObraIdsPermitidos, buildRegistroObraFilter } from "@/lib/access"
+import { fechaChile, chileInicioDelDia, chileFinDelDia } from "@/app/api/reportes/route"
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -19,7 +20,9 @@ export async function GET(request: Request) {
   const obraId = searchParams.get("obraId")
   const contratistaId = searchParams.get("contratistaId")
 
-  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
+  // Convertir fechas Chile → rangos UTC
+  const gte = fechaDesde ? chileInicioDelDia(fechaDesde) : undefined
+  const lte = fechaHasta ? chileFinDelDia(fechaHasta)   : undefined
 
   // Construir filtro de obra respetando permisos del usuario
   let obraWhere: object = buildRegistroObraFilter(obraIdsPermitidos)
@@ -35,13 +38,12 @@ export async function GET(request: Request) {
   const raw = await prisma.registroAcceso.findMany({
     where: {
       ...obraWhere,
-      ...(fechaDesde && {
+      ...((gte || lte) && {
         fechaHora: {
-          gte: new Date(`${fechaDesde}T00:00:00.000Z`),
-          ...(hasta && { lte: hasta }),
+          ...(gte && { gte }),
+          ...(lte && { lte }),
         },
       }),
-      ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
       ...(contratistaId && { contratistaId: Number(contratistaId) }),
     },
     include: {
@@ -68,7 +70,7 @@ export async function GET(request: Request) {
   const mapa = new Map<string, Fila>()
 
   for (const r of raw) {
-    const dia = r.fechaHora.toISOString().slice(0, 10)
+    const dia = fechaChile(r.fechaHora)            // fecha en hora Chile
     const clave = `${r.identificador}||${r.obraId}||${dia}`
     if (!mapa.has(clave)) {
       mapa.set(clave, {

@@ -3,6 +3,43 @@ import { prisma } from "@/lib/db"
 import { getObraIdsPermitidos, buildRegistroObraFilter } from "@/lib/access"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+/** Offset de Chile en horas (positivo): UTC-4 en invierno, UTC-3 en verano */
+function chileOffsetHoras(d: Date): number {
+  const mes = d.getUTCMonth() + 1
+  const dia = d.getUTCDate()
+  const invierno =
+    (mes > 4 && mes < 10) ||
+    (mes === 4 && dia >= 6) ||
+    (mes === 10 && dia < 6)
+  return invierno ? 4 : 3
+}
+
+/**
+ * Convierte una fecha "YYYY-MM-DD" seleccionada por el usuario (hora Chile)
+ * al instante UTC equivalente al inicio o fin de ese día en Chile.
+ */
+export function chileInicioDelDia(fechaStr: string): Date {
+  // Medianoche UTC del día seleccionado
+  const base = new Date(`${fechaStr}T00:00:00Z`)
+  const offset = chileOffsetHoras(base)
+  // Medianoche Chile = medianoche UTC + offset horas
+  return new Date(base.getTime() + offset * 3_600_000)
+}
+
+export function chileFinDelDia(fechaStr: string): Date {
+  const inicio = chileInicioDelDia(fechaStr)
+  // Fin del día = inicio del día siguiente - 1ms
+  return new Date(inicio.getTime() + 24 * 3_600_000 - 1)
+}
+
+/** Fecha "YYYY-MM-DD" de un timestamp en hora Chile */
+export function fechaChile(d: Date): string {
+  const offset = chileOffsetHoras(d)
+  const local = new Date(d.getTime() - offset * 3_600_000)
+  return local.toISOString().slice(0, 10)
+}
+
 function buildWhere(params: URLSearchParams, obraIdsPermitidos: number[] | null) {
   const fechaDesde    = params.get("fechaDesde")
   const fechaHasta    = params.get("fechaHasta")
@@ -10,18 +47,18 @@ function buildWhere(params: URLSearchParams, obraIdsPermitidos: number[] | null)
   const contratistaId = params.get("contratistaId")
   const trabajador    = params.get("trabajador")?.trim() ?? ""
 
-  const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
+  // Convertir fechas seleccionadas (hora Chile) a rangos UTC
+  const gte = fechaDesde ? chileInicioDelDia(fechaDesde) : undefined
+  const lte = fechaHasta ? chileFinDelDia(fechaHasta)   : undefined
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {}
 
-  if (fechaDesde) {
+  if (gte || lte) {
     where.fechaHora = {
-      gte: new Date(`${fechaDesde}T00:00:00.000Z`),
-      ...(hasta && { lte: hasta }),
+      ...(gte && { gte }),
+      ...(lte && { lte }),
     }
-  } else if (hasta) {
-    where.fechaHora = { lte: hasta }
   }
 
   // Si el usuario pidió filtrar por una obra específica, la usamos (si tiene acceso)
@@ -105,7 +142,7 @@ export async function GET(request: Request) {
   const mapaFilas = new Map<string, Fila>()
 
   for (const r of raw) {
-    const dia   = r.fechaHora.toISOString().slice(0, 10)
+    const dia   = fechaChile(r.fechaHora)          // fecha en hora Chile, no UTC
     const clave = `${r.identificador}||${r.obraId}||${dia}`
 
     if (!mapaFilas.has(clave)) {
