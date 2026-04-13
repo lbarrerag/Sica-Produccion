@@ -52,6 +52,10 @@ export async function POST(request: Request) {
   const tempPassword = generarPasswordTemporal()
   const passwordHash = await bcrypt.hash(tempPassword, 10)
 
+  const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA"]
+  const asignarObras = rolesConObras.includes(userRole ?? "REGISTRO_MARCA") &&
+    Array.isArray(obraIds) && obraIds.length > 0
+
   const user = await prisma.user.create({
     data: {
       userName,
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
       role: userRole ?? "REGISTRO_MARCA",
       estado: "VIGENTE",
       passwordVigente: false,
-      ...(userRole === "SUPERVISOR" && Array.isArray(obraIds) && obraIds.length > 0
+      ...(asignarObras
         ? { userObras: { create: obraIds.map((id: number) => ({ obraId: id })) } }
         : {}),
     },

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getObraIdsPermitidos } from "@/lib/access"
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -17,6 +18,12 @@ export async function POST(request: Request) {
 
   if (!identificador || !obraId || !tipo)
     return Response.json({ error: "Faltan campos requeridos" }, { status: 400 })
+
+  // Validar que el usuario tiene acceso a esta obra
+  const userId = (session.user as { id: string }).id
+  const obraIds = await getObraIdsPermitidos(userId, role)
+  if (obraIds !== null && !obraIds.includes(Number(obraId)))
+    return Response.json({ error: "No tiene acceso a esta obra" }, { status: 403 })
 
   const trabajador = await prisma.trabajador.findFirst({
     where: { identificador, estado: "VIGENTE" },

@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getObraIdsPermitidos, buildRegistroObraFilter } from "@/lib/access"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function buildWhere(params: URLSearchParams) {
+function buildWhere(params: URLSearchParams, obraIdsPermitidos: number[] | null) {
   const fechaDesde    = params.get("fechaDesde")
   const fechaHasta    = params.get("fechaHasta")
   const obraId        = params.get("obraId")
@@ -23,7 +24,21 @@ function buildWhere(params: URLSearchParams) {
     where.fechaHora = { lte: hasta }
   }
 
-  if (obraId)        where.obraId        = Number(obraId)
+  // Si el usuario pidió filtrar por una obra específica, la usamos (si tiene acceso)
+  if (obraId) {
+    const obraIdNum = Number(obraId)
+    // Si tiene restricción de obras, verificar que la obra solicitada esté en su lista
+    if (obraIdsPermitidos === null || obraIdsPermitidos.includes(obraIdNum)) {
+      where.obraId = obraIdNum
+    } else {
+      // Obra no permitida: forzar sin resultados
+      where.obraId = -1
+    }
+  } else {
+    // Sin filtro de obra específico: aplicar restricción automática del usuario
+    const filtro = buildRegistroObraFilter(obraIdsPermitidos)
+    Object.assign(where, filtro)
+  }
   if (contratistaId) where.contratistaId = Number(contratistaId)
 
   // Filtrar por nombre del trabajador O por RUT (identificador)
@@ -56,13 +71,16 @@ export async function GET(request: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
   const role = (session.user as { role: string }).role
-  if (role !== "ADMINISTRADOR" && role !== "SUPERVISOR")
+  if (role !== "ADMINISTRADOR" && role !== "SUPERVISOR_CENTRAL" && role !== "SUPERVISOR")
     return Response.json({ error: "Acceso denegado" }, { status: 403 })
+
+  const userId = (session.user as { id: string }).id
+  const obraIdsPermitidos = await getObraIdsPermitidos(userId, role)
 
   const { searchParams } = new URL(request.url)
 
   const raw = await prisma.registroAcceso.findMany({
-    where: buildWhere(searchParams),
+    where: buildWhere(searchParams, obraIdsPermitidos),
     include: {
       trabajador: { select: { nombre: true } },
       obra:       { select: { nombre: true, centroCosto: true } },

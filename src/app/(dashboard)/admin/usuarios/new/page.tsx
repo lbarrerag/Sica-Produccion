@@ -26,7 +26,7 @@ const schema = z.object({
     .email("Correo electrónico inválido")
     .optional()
     .or(z.literal("")),
-  role: z.enum(["ADMINISTRADOR", "SUPERVISOR", "REGISTRO_MARCA"]),
+  role: z.enum(["ADMINISTRADOR", "SUPERVISOR_CENTRAL", "SUPERVISOR", "REGISTRO_MARCA"]),
   obraIds: z.array(z.number()).optional(),
 })
 
@@ -76,12 +76,12 @@ export default function NuevoUsuarioPage() {
 
   async function onSubmit(data: FormValues) {
     try {
+      const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA"]
       const payload = {
         userName: data.userName.trim(),
         email: data.email?.trim() || null,
         role: data.role,
-        obraIds:
-          data.role === "SUPERVISOR" ? obraIdsSeleccionadas : [],
+        obraIds: rolesConObras.includes(data.role) ? obraIdsSeleccionadas : [],
       }
 
       const res = await fetch("/api/admin/usuarios", {
@@ -217,6 +217,7 @@ export default function NuevoUsuarioPage() {
             >
               <option value="REGISTRO_MARCA">Registro Marca</option>
               <option value="SUPERVISOR">Supervisor</option>
+              <option value="SUPERVISOR_CENTRAL">Supervisor Central</option>
               <option value="ADMINISTRADOR">Administrador</option>
             </select>
             {errors.role && (
@@ -224,12 +225,12 @@ export default function NuevoUsuarioPage() {
             )}
           </div>
 
-          {/* Obras asignadas (solo para Supervisor) */}
-          {rolSeleccionado === "SUPERVISOR" && (
+          {/* Obras asignadas (para Supervisor y Registro Marca) */}
+          {(rolSeleccionado === "SUPERVISOR" || rolSeleccionado === "REGISTRO_MARCA") && (
             <div className="space-y-2">
               <Label>Obras asignadas</Label>
               <p className="text-xs text-gray-500">
-                Seleccione las obras que podrá gestionar este supervisor
+                Seleccione las obras a las que tendrá acceso este usuario
               </p>
               <div className="max-h-48 overflow-y-auto rounded-md border border-gray-200 p-2 space-y-1">
                 {obras.length === 0 ? (

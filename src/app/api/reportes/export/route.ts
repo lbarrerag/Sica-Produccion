@@ -1,13 +1,17 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { generarExcelRegistros } from "@/lib/excel"
+import { getObraIdsPermitidos, buildRegistroObraFilter } from "@/lib/access"
 
 export async function GET(request: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
   const role = (session.user as { role: string }).role
-  if (role !== "ADMINISTRADOR" && role !== "SUPERVISOR")
+  if (role !== "ADMINISTRADOR" && role !== "SUPERVISOR_CENTRAL" && role !== "SUPERVISOR")
     return Response.json({ error: "Acceso denegado" }, { status: 403 })
+
+  const userId = (session.user as { id: string }).id
+  const obraIdsPermitidos = await getObraIdsPermitidos(userId, role)
 
   const { searchParams } = new URL(request.url)
   const fechaDesde = searchParams.get("fechaDesde")
@@ -17,8 +21,20 @@ export async function GET(request: Request) {
 
   const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999Z`) : undefined
 
+  // Construir filtro de obra respetando permisos del usuario
+  let obraWhere: object = buildRegistroObraFilter(obraIdsPermitidos)
+  if (obraId) {
+    const obraIdNum = Number(obraId)
+    if (obraIdsPermitidos === null || obraIdsPermitidos.includes(obraIdNum)) {
+      obraWhere = { obraId: obraIdNum }
+    } else {
+      obraWhere = { obraId: -1 }
+    }
+  }
+
   const raw = await prisma.registroAcceso.findMany({
     where: {
+      ...obraWhere,
       ...(fechaDesde && {
         fechaHora: {
           gte: new Date(`${fechaDesde}T00:00:00.000Z`),
@@ -26,7 +42,6 @@ export async function GET(request: Request) {
         },
       }),
       ...(!fechaDesde && hasta && { fechaHora: { lte: hasta } }),
-      ...(obraId && { obraId: Number(obraId) }),
       ...(contratistaId && { contratistaId: Number(contratistaId) }),
     },
     include: {

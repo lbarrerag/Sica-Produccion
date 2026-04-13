@@ -83,6 +83,13 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     ALL_NAV_ITEMS.admin,
     ALL_NAV_ITEMS.importar,
   ],
+  SUPERVISOR_CENTRAL: [
+    ALL_NAV_ITEMS.dashboard,
+    ALL_NAV_ITEMS.obras,
+    ALL_NAV_ITEMS.contratistas,
+    ALL_NAV_ITEMS.trabajadores,
+    ALL_NAV_ITEMS.reportes,
+  ],
   SUPERVISOR: [
     ALL_NAV_ITEMS.dashboard,
     ALL_NAV_ITEMS.obras,
@@ -94,6 +101,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
 
 const ROLE_LABELS: Record<string, string> = {
   ADMINISTRADOR: "Administrador",
+  SUPERVISOR_CENTRAL: "Supervisor Central",
   SUPERVISOR: "Supervisor",
   REGISTRO_MARCA: "Registro de Marca",
   API: "API",

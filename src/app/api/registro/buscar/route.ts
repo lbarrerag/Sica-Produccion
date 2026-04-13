@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getObraIdsPermitidos } from "@/lib/access"
 
 export async function GET(request: Request) {
   const session = await auth()
@@ -13,6 +14,14 @@ export async function GET(request: Request) {
   const obraId = searchParams.get("obraId")
 
   if (!rut) return Response.json({ error: "El parámetro rut es requerido" }, { status: 400 })
+
+  // Validar acceso a la obra si se especifica
+  if (obraId) {
+    const userId = (session.user as { id: string }).id
+    const obraIds = await getObraIdsPermitidos(userId, role)
+    if (obraIds !== null && !obraIds.includes(Number(obraId)))
+      return Response.json({ error: "No tiene acceso a esta obra" }, { status: 403 })
+  }
 
   const trabajador = await prisma.trabajador.findFirst({
     where: { identificador: rut, estado: "VIGENTE" },

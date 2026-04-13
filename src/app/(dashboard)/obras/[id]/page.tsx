@@ -1,5 +1,7 @@
 import { requireAuth } from "@/lib/auth-utils"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import UsuariosObra from "./_usuarios-obra"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { formatFecha, formatFechaSolo } from "@/lib/utils"
@@ -20,6 +22,8 @@ interface Props {
 
 export default async function ObraDetailPage({ params }: Props) {
   await requireAuth()
+  const session = await auth()
+  const role = (session?.user as { role?: string })?.role ?? ""
   const { id } = await params
   const obraId = parseInt(id, 10)
 
@@ -96,6 +100,21 @@ export default async function ObraDetailPage({ params }: Props) {
           </div>
         </dl>
       </div>
+
+      {/* Usuarios asignados (solo para administrador) */}
+      {role === "ADMINISTRADOR" && (
+        <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+          <div className="border-b border-gray-200 px-6 py-4">
+            <h2 className="text-base font-semibold text-gray-900">
+              Usuarios asignados
+            </h2>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Supervisores y Registro Marca con acceso a esta obra
+            </p>
+          </div>
+          <UsuariosObra obraId={obraId} />
+        </div>
+      )}
 
       {/* Últimos registros */}
       <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">

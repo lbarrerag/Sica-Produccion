@@ -1,12 +1,19 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { getObraIdsPermitidos, buildObraFilter } from "@/lib/access"
 
 export async function GET() {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
 
+  const userId = (session.user as { id: string }).id
+  const role = (session.user as { role: string }).role
+
+  const obraIds = await getObraIdsPermitidos(userId, role)
+  const obraFilter = buildObraFilter(obraIds)
+
   const obras = await prisma.obra.findMany({
-    where: { estado: "VIGENTE" },
+    where: { estado: "VIGENTE", ...obraFilter },
     orderBy: { nombre: "asc" },
   })
 

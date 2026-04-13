@@ -8,6 +8,7 @@ datasource db {
 
 enum UserRole {
   ADMINISTRADOR
+  SUPERVISOR_CENTRAL
   SUPERVISOR
   REGISTRO_MARCA
   API
