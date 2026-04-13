@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default async function ContratistasPage({ searchParams }: Props) {
-  await requireRole("ADMINISTRADOR")
+  await requireRole("ADMINISTRADOR", "SUPERVISOR_CENTRAL")
 
   const { pagina, q } = await searchParams
   const paginaActual = Math.max(1, parseInt(pagina ?? "1", 10) || 1)

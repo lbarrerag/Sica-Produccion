@@ -15,7 +15,7 @@ import {
   Settings,
   LogOut,
   Upload,
-  Code2,
+  Terminal,
 } from "lucide-react"
 
 type NavItem = {
@@ -73,7 +73,7 @@ const ALL_NAV_ITEMS = {
   api: {
     label: "API",
     href: "/admin/api",
-    icon: <Code2 size={18} />,
+    icon: <Terminal size={18} />,
   },
 } as const
 

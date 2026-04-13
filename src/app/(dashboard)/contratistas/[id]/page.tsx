@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default async function ContratistaDetailPage({ params }: Props) {
-  await requireRole("ADMINISTRADOR")
+  await requireRole("ADMINISTRADOR", "SUPERVISOR_CENTRAL")
   const { id } = await params
   const contratistaId = parseInt(id, 10)
 

@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default async function TrabajadoresPage({ searchParams }: Props) {
-  const user = await requireRole("ADMINISTRADOR", "SUPERVISOR")
+  const user = await requireRole("ADMINISTRADOR", "SUPERVISOR_CENTRAL", "SUPERVISOR")
   const esAdmin = hasRole(user, "ADMINISTRADOR")
 
   const { contratistaId, pagina, q } = await searchParams
