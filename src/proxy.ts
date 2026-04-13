@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import type { NextAuthRequest } from "next-auth"
 
-const RUTAS_PUBLICAS = ["/login", "/api/auth"]
+const RUTAS_PUBLICAS = ["/login", "/api/auth", "/api/v1"]
 
 export const proxy = auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl

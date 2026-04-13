@@ -26,7 +26,7 @@ const schema = z.object({
     .email("Correo electrónico inválido")
     .optional()
     .or(z.literal("")),
-  role: z.enum(["ADMINISTRADOR", "SUPERVISOR_CENTRAL", "SUPERVISOR", "REGISTRO_MARCA"]),
+  role: z.enum(["ADMINISTRADOR", "SUPERVISOR_CENTRAL", "SUPERVISOR", "REGISTRO_MARCA", "API"]),
   estado: z.enum(["VIGENTE", "INACTIVO"]),
 })
 
@@ -104,7 +104,7 @@ export default function EditarUsuarioPage() {
 
   async function onSubmit(data: FormValues) {
     try {
-      const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA"]
+      const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA", "API"]
       const payload = {
         userName: data.userName.trim(),
         email: data.email?.trim() || null,
@@ -208,6 +208,7 @@ export default function EditarUsuarioPage() {
               <option value="SUPERVISOR">Supervisor</option>
               <option value="SUPERVISOR_CENTRAL">Supervisor Central</option>
               <option value="ADMINISTRADOR">Administrador</option>
+              <option value="API">API</option>
             </select>
             {errors.role && (
               <p className="text-xs text-red-600">{errors.role.message}</p>
@@ -232,8 +233,8 @@ export default function EditarUsuarioPage() {
             )}
           </div>
 
-          {/* Obras asignadas (para Supervisor y Registro Marca) */}
-          {(rolWatch === "SUPERVISOR" || rolWatch === "REGISTRO_MARCA") && (
+          {/* Obras asignadas (para Supervisor, Registro Marca y API) */}
+          {(rolWatch === "SUPERVISOR" || rolWatch === "REGISTRO_MARCA" || rolWatch === "API") && (
             <div className="space-y-2">
               <Label>Obras asignadas</Label>
               <p className="text-xs text-gray-500">

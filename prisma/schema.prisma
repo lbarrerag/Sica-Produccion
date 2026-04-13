@@ -55,6 +55,7 @@ model User {
   role            UserRole   @default(REGISTRO_MARCA)
   idNegocio       Int        @default(0) @map("id_negocio")
   codTheme        String?    @map("cod_theme")
+  apiKey          String?    @map("api_key")
   passwordVigente Boolean    @default(true) @map("password_vigente")
   estado          UserEstado @default(VIGENTE)
   userObras       UserObra[]

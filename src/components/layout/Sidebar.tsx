@@ -15,6 +15,7 @@ import {
   Settings,
   LogOut,
   Upload,
+  Code2,
 } from "lucide-react"
 
 type NavItem = {
@@ -69,6 +70,11 @@ const ALL_NAV_ITEMS = {
     href: "/admin/importar",
     icon: <Upload size={18} />,
   },
+  api: {
+    label: "API",
+    href: "/admin/api",
+    icon: <Code2 size={18} />,
+  },
 } as const
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
@@ -82,6 +88,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     ALL_NAV_ITEMS.reportes,
     ALL_NAV_ITEMS.admin,
     ALL_NAV_ITEMS.importar,
+    ALL_NAV_ITEMS.api,
   ],
   SUPERVISOR_CENTRAL: [
     ALL_NAV_ITEMS.dashboard,
