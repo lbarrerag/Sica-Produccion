@@ -25,6 +25,15 @@ export async function GET() {
   return Response.json(users)
 }
 
+function generarPasswordTemporal(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+  let password = ""
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return password
+}
+
 export async function POST(request: Request) {
   const session = await auth()
   if (!session?.user) return Response.json({ error: "No autorizado" }, { status: 401 })
@@ -32,24 +41,28 @@ export async function POST(request: Request) {
   if (role !== "ADMINISTRADOR") return Response.json({ error: "Acceso denegado" }, { status: 403 })
 
   const body = await request.json()
-  const { userName, email, password, role: userRole } = body
+  const { userName, email, role: userRole, obraIds } = body
 
-  if (!userName || !password)
-    return Response.json({ error: "El nombre de usuario y contraseña son requeridos" }, { status: 400 })
+  if (!userName)
+    return Response.json({ error: "El nombre de usuario es requerido" }, { status: 400 })
 
   const existing = await prisma.user.findUnique({ where: { userName } })
   if (existing) return Response.json({ error: "El nombre de usuario ya existe" }, { status: 409 })
 
-  const passwordHash = await bcrypt.hash(password, 10)
+  const tempPassword = generarPasswordTemporal()
+  const passwordHash = await bcrypt.hash(tempPassword, 10)
 
   const user = await prisma.user.create({
     data: {
       userName,
-      email,
+      email: email || null,
       passwordHash,
       role: userRole ?? "REGISTRO_MARCA",
       estado: "VIGENTE",
       passwordVigente: false,
+      ...(userRole === "SUPERVISOR" && Array.isArray(obraIds) && obraIds.length > 0
+        ? { userObras: { create: obraIds.map((id: number) => ({ obraId: id })) } }
+        : {}),
     },
     select: {
       id: true,
@@ -62,5 +75,5 @@ export async function POST(request: Request) {
     },
   })
 
-  return Response.json(user, { status: 201 })
+  return Response.json({ ...user, tempPassword }, { status: 201 })
 }
