@@ -181,9 +181,13 @@ export default async function DashboardPage() {
     (t) => t === "ENTRADA"
   ).length
 
-  // ── Ingresos y salidas hoy ─────────────────────────────────────────────────
-  const ingresosHoy = registrosHoyAll.filter((r) => r.tipo === "ENTRADA").length
-  const salidasHoy = registrosHoyAll.filter((r) => r.tipo === "SALIDA").length
+  // ── Ingresos y salidas hoy (trabajadores únicos) ──────────────────────────
+  const ingresosHoy = new Set(
+    registrosHoyAll.filter((r) => r.tipo === "ENTRADA").map((r) => r.trabajadorId)
+  ).size
+  const salidasHoy = new Set(
+    registrosHoyAll.filter((r) => r.tipo === "SALIDA").map((r) => r.trabajadorId)
+  ).size
 
   // ── Trabajadores que dejaron de trabajar ───────────────────────────────────
   const setActivosEstaSemana = new Set(
