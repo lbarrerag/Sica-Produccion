@@ -62,7 +62,7 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Acceso denegado" }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
-  const { count } = await prisma.registroAcceso.deleteMany({ where: buildWhere(searchParams) })
+  const { count } = await prisma.registroAcceso.deleteMany({ where: buildWhere(searchParams, null) })
   return Response.json({ eliminados: count })
 }
 
