@@ -33,6 +33,22 @@ export async function POST(request: Request) {
   if (!trabajador)
     return Response.json({ error: "Trabajador no encontrado o no vigente" }, { status: 404 })
 
+  // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra
+  const ultimoRegistro = await prisma.registroAcceso.findFirst({
+    where: { trabajadorId: trabajador.id, obraId: Number(obraId) },
+    orderBy: { fechaHora: "desc" },
+    select: { tipo: true },
+  })
+
+  if (ultimoRegistro?.tipo === tipo) {
+    const accion = tipo === "ENTRADA" ? "entrada" : "salida"
+    const pendiente = tipo === "ENTRADA" ? "salida" : "entrada"
+    return Response.json(
+      { error: `El trabajador ya tiene una ${accion} registrada en esta obra. Debe registrar ${pendiente} primero.` },
+      { status: 409 }
+    )
+  }
+
   const registro = await prisma.registroAcceso.create({
     data: {
       trabajadorId: trabajador.id,
