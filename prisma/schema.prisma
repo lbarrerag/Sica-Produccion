@@ -149,5 +149,8 @@ model RegistroAcceso {
   tipo                     TipoAcceso
   fechaHora                DateTime     @default(now()) @map("fecha_hora")
 
+  @@index([obraId, fechaHora(sort: Desc)])
+  @@index([trabajadorId, fechaHora(sort: Desc)])
+  @@index([identificador])
   @@map("registro_acceso")
 }

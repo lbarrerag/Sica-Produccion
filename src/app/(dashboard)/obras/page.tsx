@@ -53,16 +53,24 @@ export default async function ObrasPage({ searchParams }: Props) {
       orderBy: { nombre: "asc" },
       skip: (paginaActual - 1) * POR_PAGINA,
       take: POR_PAGINA,
-      include: {
-        // Traemos el último registro de acceso por obra
-        registros: {
-          orderBy: { fechaHora: "desc" },
-          take: 1,
-          select: { fechaHora: true },
-        },
-      },
+      select: { id: true, nombre: true, centroCosto: true, estado: true, fechaInsert: true },
     }),
   ])
+
+  // Una sola query agrupada para la última actividad de todas las obras de la página
+  // (evita N subqueries — una por obra — sobre registro_acceso)
+  const obraIds = obras.map((o) => o.id)
+  const ultimasActividades = obraIds.length > 0
+    ? await prisma.registroAcceso.groupBy({
+        by: ["obraId"],
+        where: { obraId: { in: obraIds } },
+        _max: { fechaHora: true },
+      })
+    : []
+
+  const ultimaActividadMap = new Map(
+    ultimasActividades.map((r) => [r.obraId, r._max.fechaHora])
+  )
 
   const totalPaginas = Math.ceil(
     (tabActual === "activas" ? totalActivas : totalInactivas) / POR_PAGINA
@@ -179,7 +187,7 @@ export default async function ObrasPage({ searchParams }: Props) {
               </TableHeader>
               <TableBody>
                 {obras.map((obra) => {
-                  const ultimaActividad = obra.registros[0]?.fechaHora ?? null
+                  const ultimaActividad = ultimaActividadMap.get(obra.id) ?? null
                   const sinActividad60 =
                     !ultimaActividad || ultimaActividad < limiteInactividad
 
