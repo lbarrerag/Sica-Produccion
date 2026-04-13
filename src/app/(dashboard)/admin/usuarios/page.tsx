@@ -10,9 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import AccionesUsuario from "./_acciones-usuario"
 
 const ROL_LABELS: Record<string, string> = {
   ADMINISTRADOR: "Administrador",
+  SUPERVISOR_CENTRAL: "Supervisor Central",
   SUPERVISOR: "Supervisor",
   REGISTRO_MARCA: "Registro Marca",
   API: "API",
@@ -94,9 +96,7 @@ export default async function UsuariosPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/admin/usuarios/${u.id}/edit`}>Editar</Link>
-                    </Button>
+                    <AccionesUsuario userId={u.id} userName={u.userName} role={u.role} />
                   </TableCell>
                 </TableRow>
               ))}
