@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import ExcelJS from "exceljs"
+import { fechaEnChile, chileInicioDelDia, chileFinDelDia } from "@/lib/chile-time"
 
 const BATCH = 200 // registros por lote de insertMany
 
@@ -102,22 +103,19 @@ export async function POST(request: NextRequest) {
     let omitidos = 0
     const errores: string[] = []
 
-    // Acumular lotes para insertMany
-    const lote: {
+    // Registros parseados del Excel antes de insertar
+    const pendientes: {
       trabajadorId: number
       obraId: number
       identificador: string
       contratistaId: number | null
       tipo: "ENTRADA" | "SALIDA"
       fechaHora: Date
+      diaChile: string
     }[] = []
 
-    async function flushLote() {
-      if (lote.length === 0) return
-      await prisma.registroAcceso.createMany({ data: lote, skipDuplicates: false })
-      importados += lote.length
-      lote.length = 0
-    }
+    // Dedup dentro del Excel: clave = trabajadorId|obraId|diaChile|tipo
+    const vistoEnExcel = new Set<string>()
 
     for (let r = 3; r <= sheet.rowCount; r++) {
       const row = sheet.getRow(r)
@@ -216,37 +214,74 @@ export async function POST(request: NextRequest) {
       // ── Registro ENTRADA ───────────────────────────────────────────────────
       const dtIngreso = parseFechaHora(fecha, ingresoCell)
       if (dtIngreso) {
-        lote.push({
-          trabajadorId,
-          obraId,
-          identificador,
-          contratistaId,
-          tipo: "ENTRADA",
-          fechaHora: dtIngreso,
-        })
+        const dia = fechaEnChile(dtIngreso)
+        const clave = `${trabajadorId}|${obraId}|${dia}|ENTRADA`
+        if (!vistoEnExcel.has(clave)) {
+          vistoEnExcel.add(clave)
+          pendientes.push({ trabajadorId, obraId, identificador, contratistaId, tipo: "ENTRADA", fechaHora: dtIngreso, diaChile: dia })
+        } else {
+          omitidos++
+        }
       }
 
       // ── Registro SALIDA ────────────────────────────────────────────────────
       const dtSalida = parseFechaHora(fecha, salidaCell)
       if (dtSalida) {
-        lote.push({
-          trabajadorId,
-          obraId,
-          identificador,
-          contratistaId,
-          tipo: "SALIDA",
-          fechaHora: dtSalida,
-        })
+        const dia = fechaEnChile(dtSalida)
+        const clave = `${trabajadorId}|${obraId}|${dia}|SALIDA`
+        if (!vistoEnExcel.has(clave)) {
+          vistoEnExcel.add(clave)
+          pendientes.push({ trabajadorId, obraId, identificador, contratistaId, tipo: "SALIDA", fechaHora: dtSalida, diaChile: dia })
+        } else {
+          omitidos++
+        }
       }
 
       if (!dtIngreso && !dtSalida) omitidos++
-
-      // Flush cada BATCH registros
-      if (lote.length >= BATCH) await flushLote()
     }
 
-    // Flush final
-    await flushLote()
+    // ── Verificar contra DB: excluir registros ya existentes ─────────────────
+    // Obtener los días únicos cubiertos por la importación
+    const diasUnicos = [...new Set(pendientes.map((p) => p.diaChile))]
+
+    // Consultar en lotes de días para no sobrecargar la query
+    const existentesDB = new Set<string>()
+    const DIAS_POR_QUERY = 30
+    for (let i = 0; i < diasUnicos.length; i += DIAS_POR_QUERY) {
+      const diasLote = diasUnicos.slice(i, i + DIAS_POR_QUERY)
+      // Rango UTC que cubre todos los días del lote
+      const gteArr = diasLote.map((d) => chileInicioDelDia(d))
+      const lteArr = diasLote.map((d) => chileFinDelDia(d))
+      const gteMin = gteArr.reduce((a, b) => (a < b ? a : b))
+      const lteMax = lteArr.reduce((a, b) => (a > b ? a : b))
+
+      const registrosDB = await prisma.registroAcceso.findMany({
+        where: { fechaHora: { gte: gteMin, lte: lteMax } },
+        select: { trabajadorId: true, obraId: true, tipo: true, fechaHora: true },
+      })
+
+      for (const reg of registrosDB) {
+        const dia = fechaEnChile(reg.fechaHora)
+        existentesDB.add(`${reg.trabajadorId}|${reg.obraId}|${dia}|${reg.tipo}`)
+      }
+    }
+
+    // Filtrar pendientes: descartar los que ya existen en DB
+    const aNuevos = pendientes.filter((p) => {
+      const clave = `${p.trabajadorId}|${p.obraId}|${p.diaChile}|${p.tipo}`
+      if (existentesDB.has(clave)) {
+        omitidos++
+        return false
+      }
+      return true
+    })
+
+    // Insertar en lotes
+    for (let i = 0; i < aNuevos.length; i += BATCH) {
+      const lote = aNuevos.slice(i, i + BATCH).map(({ diaChile: _, ...rest }) => rest)
+      await prisma.registroAcceso.createMany({ data: lote, skipDuplicates: false })
+      importados += lote.length
+    }
 
     return NextResponse.json({
       importados,
