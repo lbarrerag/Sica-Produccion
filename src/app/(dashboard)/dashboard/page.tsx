@@ -90,11 +90,16 @@ export default async function DashboardPage() {
       select: { trabajadorId: true, tipo: true },
     }),
 
-    // 3. Últimos 500 registros para tabla accesos recientes
+    // 3. Últimos 60 registros para tabla accesos recientes (muestra 10 filas pivotadas)
     prisma.registroAcceso.findMany({
-      take: 500,
+      take: 60,
       orderBy: { fechaHora: "desc" },
-      include: {
+      select: {
+        id: true,
+        identificador: true,
+        obraId: true,
+        tipo: true,
+        fechaHora: true,
         trabajador: { select: { nombre: true } },
         obra: { select: { nombre: true, centroCosto: true } },
         contratista: { select: { nombre: true } },
@@ -109,6 +114,7 @@ export default async function DashboardPage() {
         trabajador: { select: { nombre: true } },
       },
       distinct: ["trabajadorId"],
+      take: 300,
     }),
 
     // 5. Trabajadores activos esta semana
@@ -224,28 +230,33 @@ export default async function DashboardPage() {
   }
   alertasPermananecia.sort((a, b) => b.horasAdentro - a.horasAdentro)
 
-  // ── Top obras — resolver nombres para los 3 períodos ─────────────────────
-  async function resolverNombresObras(
-    raw: Array<{ obraId: number; _count: { id: number } }>
-  ) {
-    if (raw.length === 0) return []
-    const ids = raw.map((r) => r.obraId)
-    const obras = await prisma.obra.findMany({
-      where: { id: { in: ids } },
-      select: { id: true, nombre: true },
-    })
-    const obraMap = new Map(obras.map((o) => [o.id, o.nombre]))
+  // ── Top obras — resolver nombres en una sola query para los 3 períodos ───
+  const todosObraIds = [
+    ...new Set([
+      ...topObrasHoyRaw.map((r) => r.obraId),
+      ...topObrasAyerRaw.map((r) => r.obraId),
+      ...topObrasSemanaRaw.map((r) => r.obraId),
+    ]),
+  ]
+  const obrasNombres =
+    todosObraIds.length > 0
+      ? await prisma.obra.findMany({
+          where: { id: { in: todosObraIds } },
+          select: { id: true, nombre: true },
+        })
+      : []
+  const obraMap = new Map(obrasNombres.map((o) => [o.id, o.nombre]))
+
+  function mapearTopObras(raw: Array<{ obraId: number; _count: { id: number } }>) {
     return raw.map((r) => ({
       nombre: obraMap.get(r.obraId) ?? `Obra ${r.obraId}`,
       ingresos: r._count.id,
     }))
   }
 
-  const [topObrasHoy, topObrasAyer, topObrasSemana] = await Promise.all([
-    resolverNombresObras(topObrasHoyRaw),
-    resolverNombresObras(topObrasAyerRaw),
-    resolverNombresObras(topObrasSemanaRaw),
-  ])
+  const topObrasHoy = mapearTopObras(topObrasHoyRaw)
+  const topObrasAyer = mapearTopObras(topObrasAyerRaw)
+  const topObrasSemana = mapearTopObras(topObrasSemanaRaw)
 
   // ── Gráfico 14 días ────────────────────────────────────────────────────────
   // Agrupar por día en hora Chile (UTC-3)

@@ -57,6 +57,12 @@ export async function PUT(
   const body = await request.json()
   const { role: userRole, estado, email, obraIds } = body
 
+  // Leer rol actual ANTES de hacer el update (evita N+1 posterior)
+  const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA", "API"]
+  const rolActual = userRole === undefined
+    ? (await prisma.user.findUnique({ where: { id }, select: { role: true } }))?.role
+    : undefined
+
   await prisma.user.update({
     where: { id },
     data: {
@@ -67,8 +73,7 @@ export async function PUT(
   })
 
   // Sincronizar obras si el rol las necesita; si no, limpiar asignaciones
-  const rolesConObras = ["SUPERVISOR", "REGISTRO_MARCA", "API"]
-  const rolFinal = userRole ?? (await prisma.user.findUnique({ where: { id }, select: { role: true } }))?.role
+  const rolFinal = userRole ?? rolActual
   if (!rolesConObras.includes(rolFinal as string)) {
     // ADMINISTRADOR, SUPERVISOR_CENTRAL, API → sin restricción de obras
     await prisma.userObra.deleteMany({ where: { userId: id } })

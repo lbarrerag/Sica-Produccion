@@ -12,9 +12,22 @@ export async function GET(
 
   const obra = await prisma.obra.findUnique({
     where: { id: Number(id) },
-    include: {
+    select: {
+      id: true,
+      nombre: true,
+      centroCosto: true,
+      estado: true,
+      fechaInsert: true,
       registros: {
-        include: { trabajador: true },
+        take: 50,
+        orderBy: { fechaHora: "desc" },
+        select: {
+          id: true,
+          identificador: true,
+          tipo: true,
+          fechaHora: true,
+          trabajador: { select: { id: true, nombre: true } },
+        },
       },
     },
   })
