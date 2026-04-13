@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db"
 import { validateApiKey } from "@/lib/api-auth"
+import { fechaEnChile, chileInicioDelDia } from "@/lib/chile-time"
 
 /**
  * POST /api/v1/registro/manual
@@ -71,8 +72,17 @@ export async function POST(request: Request) {
   }
 
   // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra
+  // Se evalúa solo dentro del día Chile de la fechaHora enviada
+  const diaFecha = fechaEnChile(fechaRegistro)
   const ultimoRegistro = await prisma.registroAcceso.findFirst({
-    where: { trabajadorId: trabajador.id, obraId: Number(obraId) },
+    where: {
+      trabajadorId: trabajador.id,
+      obraId: Number(obraId),
+      fechaHora: {
+        gte: chileInicioDelDia(diaFecha),
+        lt:  new Date(chileInicioDelDia(diaFecha).getTime() + 24 * 3_600_000),
+      },
+    },
     orderBy: { fechaHora: "desc" },
     select: { tipo: true },
   })

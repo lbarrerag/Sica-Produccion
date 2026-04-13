@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getObraIdsPermitidos } from "@/lib/access"
+import { chileInicioHoy } from "@/lib/chile-time"
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -33,9 +34,13 @@ export async function POST(request: Request) {
   if (!trabajador)
     return Response.json({ error: "Trabajador no encontrado o no vigente" }, { status: 404 })
 
-  // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra
+  // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra (solo hoy)
   const ultimoRegistro = await prisma.registroAcceso.findFirst({
-    where: { trabajadorId: trabajador.id, obraId: Number(obraId) },
+    where: {
+      trabajadorId: trabajador.id,
+      obraId: Number(obraId),
+      fechaHora: { gte: chileInicioHoy() },
+    },
     orderBy: { fechaHora: "desc" },
     select: { tipo: true },
   })

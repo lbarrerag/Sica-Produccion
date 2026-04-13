@@ -1,44 +1,11 @@
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { getObraIdsPermitidos, buildRegistroObraFilter } from "@/lib/access"
+import { chileInicioDelDia, chileFinDelDia, fechaEnChile } from "@/lib/chile-time"
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-/** Offset de Chile en horas (positivo): UTC-4 en invierno, UTC-3 en verano */
-function chileOffsetHoras(d: Date): number {
-  const mes = d.getUTCMonth() + 1
-  const dia = d.getUTCDate()
-  const invierno =
-    (mes > 4 && mes < 10) ||
-    (mes === 4 && dia >= 6) ||
-    (mes === 10 && dia < 6)
-  return invierno ? 4 : 3
-}
-
-/**
- * Convierte una fecha "YYYY-MM-DD" seleccionada por el usuario (hora Chile)
- * al instante UTC equivalente al inicio o fin de ese día en Chile.
- */
-export function chileInicioDelDia(fechaStr: string): Date {
-  // Medianoche UTC del día seleccionado
-  const base = new Date(`${fechaStr}T00:00:00Z`)
-  const offset = chileOffsetHoras(base)
-  // Medianoche Chile = medianoche UTC + offset horas
-  return new Date(base.getTime() + offset * 3_600_000)
-}
-
-export function chileFinDelDia(fechaStr: string): Date {
-  const inicio = chileInicioDelDia(fechaStr)
-  // Fin del día = inicio del día siguiente - 1ms
-  return new Date(inicio.getTime() + 24 * 3_600_000 - 1)
-}
-
-/** Fecha "YYYY-MM-DD" de un timestamp en hora Chile */
-export function fechaChile(d: Date): string {
-  const offset = chileOffsetHoras(d)
-  const local = new Date(d.getTime() - offset * 3_600_000)
-  return local.toISOString().slice(0, 10)
-}
+// Re-exportar para que export/route.ts pueda importar desde aquí
+export { chileInicioDelDia, chileFinDelDia }
+export const fechaChile = fechaEnChile
 
 function buildWhere(params: URLSearchParams, obraIdsPermitidos: number[] | null) {
   const fechaDesde    = params.get("fechaDesde")
