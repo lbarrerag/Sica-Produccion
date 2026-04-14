@@ -414,6 +414,117 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
 }`}
           notes="El campo fechaHora es obligatorio y debe ser una fecha ISO 8601 válida. Retorna error 400 si el formato es inválido."
         />
+
+        {/* ── Trabajadores ── */}
+        <h2 className="text-lg font-semibold text-gray-900 pt-4">Trabajadores</h2>
+
+        <EndpointCard
+          method="POST"
+          path="/api/v1/trabajadores"
+          description="Crea un trabajador nuevo. Si el RUT ya existe, reactiva al trabajador y actualiza sus datos."
+          params={[
+            { name: "rut", tipo: "string", required: true, desc: "RUT del trabajador, ej: 12345678-9" },
+            { name: "nombre", tipo: "string", required: true, desc: "Nombre completo del trabajador" },
+            { name: "contratistaRut", tipo: "string", required: false, desc: "RUT del contratista al que pertenece" },
+            { name: "especialidad", tipo: "string", required: false, desc: "Especialidad u oficio del trabajador" },
+            { name: "direccion", tipo: "string", required: false, desc: "Dirección del trabajador" },
+            { name: "ciudad", tipo: "string", required: false, desc: "Ciudad del trabajador" },
+            { name: "telefono", tipo: "string", required: false, desc: "Teléfono de contacto" },
+            { name: "idExterno", tipo: "number", required: false, desc: "ID en sistema externo para trazabilidad" },
+          ]}
+          bodyExample={`{
+  "rut": "12345678-9",
+  "nombre": "Juan Pérez González",
+  "contratistaRut": "76543210-1",
+  "especialidad": "Electricista",
+  "ciudad": "Santiago"
+}`}
+          responseExample={`{
+  "success": true,
+  "trabajador": {
+    "id": 842,
+    "identificador": "12345678-9",
+    "nombre": "Juan Pérez González",
+    "estado": "VIGENTE",
+    "especialidad": "Electricista",
+    "contratistaId": 5,
+    "nombreContratista": "Constructora XYZ"
+  }
+}`}
+          notes="Si el RUT ya existe en el sistema, se actualiza con los nuevos datos y se reactiva (estado VIGENTE)."
+        />
+
+        <EndpointCard
+          method="PUT"
+          path="/api/v1/trabajadores/:rut"
+          description="Actualiza los datos de un trabajador existente. Solo se modifican los campos enviados."
+          params={[
+            { name: "nombre", tipo: "string", required: false, desc: "Nombre completo del trabajador" },
+            { name: "estado", tipo: '"VIGENTE" | "NO_VIGENTE"', required: false, desc: "Estado del trabajador" },
+            { name: "contratistaRut", tipo: "string", required: false, desc: "RUT del nuevo contratista asignado" },
+            { name: "especialidad", tipo: "string", required: false, desc: "Especialidad u oficio" },
+            { name: "direccion", tipo: "string", required: false, desc: "Dirección" },
+            { name: "ciudad", tipo: "string", required: false, desc: "Ciudad" },
+            { name: "telefono", tipo: "string", required: false, desc: "Teléfono" },
+            { name: "idExterno", tipo: "number", required: false, desc: "ID en sistema externo" },
+          ]}
+          bodyExample={`{
+  "estado": "NO_VIGENTE",
+  "especialidad": "Gasfiter"
+}`}
+          responseExample={`{
+  "success": true,
+  "trabajador": {
+    "id": 842,
+    "identificador": "12345678-9",
+    "nombre": "Juan Pérez González",
+    "estado": "NO_VIGENTE",
+    "especialidad": "Gasfiter",
+    "contratistaId": 5,
+    "nombreContratista": "Constructora XYZ",
+    "ciudad": "Santiago"
+  }
+}`}
+          notes="Retorna error 404 si el RUT no existe. El RUT va en la URL: PUT /api/v1/trabajadores/12345678-9"
+        />
+
+        {/* ── Contratistas ── */}
+        <h2 className="text-lg font-semibold text-gray-900 pt-4">Contratistas</h2>
+
+        <EndpointCard
+          method="POST"
+          path="/api/v1/contratistas"
+          description="Crea un contratista nuevo. Si el RUT ya existe, actualiza sus datos y lo reactiva."
+          params={[
+            { name: "rut", tipo: "string", required: true, desc: "RUT del contratista, ej: 76543210-1" },
+            { name: "nombre", tipo: "string", required: true, desc: "Razón social o nombre del contratista" },
+            { name: "direccion", tipo: "string", required: false, desc: "Dirección de la empresa" },
+            { name: "email", tipo: "string", required: false, desc: "Correo electrónico de contacto" },
+            { name: "telefono", tipo: "string", required: false, desc: "Teléfono de contacto" },
+            { name: "ciudad", tipo: "string", required: false, desc: "Ciudad" },
+            { name: "especialidad", tipo: "string", required: false, desc: "Rubro o especialidad de la empresa" },
+            { name: "nombreContador", tipo: "string", required: false, desc: "Nombre del contador de la empresa" },
+          ]}
+          bodyExample={`{
+  "rut": "76543210-1",
+  "nombre": "Constructora XYZ SpA",
+  "ciudad": "Santiago",
+  "email": "contacto@xyz.cl",
+  "telefono": "+56222334455"
+}`}
+          responseExample={`{
+  "success": true,
+  "contratista": {
+    "id": 12,
+    "identificador": "76543210-1",
+    "nombre": "Constructora XYZ SpA",
+    "estado": "VIGENTE",
+    "ciudad": "Santiago",
+    "especialidad": null
+  }
+}`}
+          notes="Si el RUT ya existe, se actualizan los datos y se reactiva (estado VIGENTE)."
+        />
       </div>
 
       {/* Ejemplos de código */}
