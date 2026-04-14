@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   }
 
   // Resolver contratista si se proporcionó
-  let contratistaId: number | undefined
+  let contratistaConnect: { connect: { id: number } } | undefined
   let identificadorContratista: string | undefined
   let nombreContratista: string | undefined
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         { status: 404 }
       )
     }
-    contratistaId = contratista.id
+    contratistaConnect = { connect: { id: contratista.id } }
     identificadorContratista = contratista.identificador
     nombreContratista = contratista.nombre
   }
@@ -72,7 +72,11 @@ export async function POST(request: Request) {
     update: {
       nombre,
       estado: "VIGENTE",
-      ...(contratistaId !== undefined && { contratistaId, identificadorContratista, nombreContratista }),
+      ...(contratistaConnect !== undefined && {
+        contratista: contratistaConnect,
+        identificadorContratista,
+        nombreContratista,
+      }),
       ...(especialidad !== undefined && { especialidad }),
       ...(direccion !== undefined && { direccion }),
       ...(ciudad !== undefined && { ciudad }),
@@ -83,9 +87,11 @@ export async function POST(request: Request) {
       identificador: rut,
       nombre,
       estado: "VIGENTE",
-      contratistaId,
-      identificadorContratista,
-      nombreContratista,
+      ...(contratistaConnect !== undefined && {
+        contratista: contratistaConnect,
+        identificadorContratista,
+        nombreContratista,
+      }),
       especialidad,
       direccion,
       ciudad,
