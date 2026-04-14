@@ -460,7 +460,7 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
           description="Actualiza los datos de un trabajador existente. Solo se modifican los campos enviados."
           params={[
             { name: "nombre", tipo: "string", required: false, desc: "Nombre completo del trabajador" },
-            { name: "estado", tipo: '"VIGENTE" | "NO_VIGENTE"', required: false, desc: "Estado del trabajador" },
+            { name: "estado", tipo: '"VIGENTE" | "ELIMINADO"', required: false, desc: "Estado del trabajador" },
             { name: "contratistaRut", tipo: "string", required: false, desc: "RUT del nuevo contratista asignado" },
             { name: "especialidad", tipo: "string", required: false, desc: "Especialidad u oficio" },
             { name: "direccion", tipo: "string", required: false, desc: "Dirección" },
@@ -469,7 +469,7 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
             { name: "idExterno", tipo: "number", required: false, desc: "ID en sistema externo" },
           ]}
           bodyExample={`{
-  "estado": "NO_VIGENTE",
+  "estado": "ELIMINADO",
   "especialidad": "Gasfiter"
 }`}
           responseExample={`{
@@ -478,7 +478,7 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
     "id": 842,
     "identificador": "12345678-9",
     "nombre": "Juan Pérez González",
-    "estado": "NO_VIGENTE",
+    "estado": "ELIMINADO",
     "especialidad": "Gasfiter",
     "contratistaId": 5,
     "nombreContratista": "Constructora XYZ",

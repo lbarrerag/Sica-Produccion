@@ -46,7 +46,7 @@ export async function PUT(
 
   const { nombre, estado, contratistaRut, especialidad, direccion, ciudad, telefono, idExterno } = body as {
     nombre?: string
-    estado?: string
+    estado?: "VIGENTE" | "ELIMINADO"
     contratistaRut?: string
     especialidad?: string
     direccion?: string
@@ -55,9 +55,9 @@ export async function PUT(
     idExterno?: number
   }
 
-  if (estado && estado !== "VIGENTE" && estado !== "NO_VIGENTE") {
+  if (estado && estado !== "VIGENTE" && estado !== "ELIMINADO") {
     return Response.json(
-      { error: 'El campo estado debe ser "VIGENTE" o "NO_VIGENTE"' },
+      { error: 'El campo estado debe ser "VIGENTE" o "ELIMINADO"' },
       { status: 400 }
     )
   }
@@ -91,7 +91,7 @@ export async function PUT(
     where: { identificador: rut },
     data: {
       ...(nombre !== undefined && { nombre }),
-      ...(estado !== undefined && { estado: estado as "VIGENTE" | "NO_VIGENTE" }),
+      ...(estado !== undefined && { estado: estado as "VIGENTE" | "ELIMINADO" }),
       ...(contratistaFields !== undefined && contratistaFields),
       ...(especialidad !== undefined && { especialidad }),
       ...(direccion !== undefined && { direccion }),
