@@ -13,6 +13,7 @@ interface FilaReporte {
   fechaRegistro: string        // YYYY-MM-DD
   identificador: string
   nombre: string
+  especialidad: string | null
   obra: string
   centroCosto: string | null
   contratista: string | null
@@ -220,6 +221,7 @@ export default function ReportesPage() {
                       <th className="px-4 py-3 text-left">Fecha Registro</th>
                       <th className="px-4 py-3 text-left">Identificador</th>
                       <th className="px-4 py-3 text-left">Nombre</th>
+                      <th className="px-4 py-3 text-left">Especialidad</th>
                       <th className="px-4 py-3 text-left">Obra</th>
                       <th className="px-4 py-3 text-left">Centro Costo</th>
                       <th className="px-4 py-3 text-left">Contratista</th>
@@ -234,6 +236,7 @@ export default function ReportesPage() {
                         <td className="px-4 py-3 text-gray-600">{reg.fechaRegistro}</td>
                         <td className="px-4 py-3 font-mono">{formatRUT(reg.identificador)}</td>
                         <td className="px-4 py-3 font-medium text-gray-900 min-w-[160px]">{reg.nombre}</td>
+                        <td className="px-4 py-3 text-gray-500">{reg.especialidad ?? "—"}</td>
                         <td className="px-4 py-3 text-gray-500 min-w-[200px]">{reg.obra}</td>
                         <td className="px-4 py-3 text-gray-400 font-mono text-xs">{reg.centroCosto ?? "—"}</td>
                         <td className="px-4 py-3 text-gray-500 min-w-[160px]">{reg.contratista ?? "—"}</td>

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       ...(contratistaId && { contratistaId: Number(contratistaId) }),
     },
     include: {
-      trabajador: { select: { nombre: true } },
+      trabajador: { select: { nombre: true, especialidad: true } },
       obra: { select: { nombre: true, centroCosto: true } },
       contratista: { select: { nombre: true } },
     },
@@ -60,6 +60,7 @@ export async function GET(request: Request) {
     fechaRegistro: string
     identificador: string
     nombre: string
+    especialidad: string | null
     obra: string
     centroCosto: string | null
     contratista: string | null
@@ -78,6 +79,7 @@ export async function GET(request: Request) {
         fechaRegistro: dia,
         identificador: r.identificador,
         nombre: r.trabajador.nombre,
+        especialidad: r.trabajador.especialidad ?? null,
         obra: r.obra.nombre,
         centroCosto: r.obra.centroCosto ?? null,
         contratista: r.contratista?.nombre ?? null,

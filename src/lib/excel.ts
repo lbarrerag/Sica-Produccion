@@ -5,6 +5,7 @@ type FilaReporte = {
   fechaRegistro: string
   identificador: string
   nombre: string
+  especialidad: string | null
   obra: string
   centroCosto: string | null
   contratista: string | null
@@ -31,6 +32,7 @@ export async function generarExcelRegistros(filas: FilaReporte[]): Promise<Buffe
     { header: "Fecha Registro",   key: "fechaRegistro",width: 14 },
     { header: "Identificador",    key: "identificador",width: 16 },
     { header: "Nombre",           key: "nombre",       width: 30 },
+    { header: "Especialidad",     key: "especialidad", width: 20 },
     { header: "Obra",             key: "obra",         width: 35 },
     { header: "Centro Costo",     key: "centroCosto",  width: 14 },
     { header: "Contratista",      key: "contratista",  width: 35 },
@@ -52,6 +54,7 @@ export async function generarExcelRegistros(filas: FilaReporte[]): Promise<Buffe
       fechaRegistro:f.fechaRegistro,
       identificador:f.identificador,
       nombre:       f.nombre,
+      especialidad: f.especialidad ?? "",
       obra:         f.obra,
       centroCosto:  f.centroCosto ?? "",
       contratista:  f.contratista ?? "",
