@@ -56,7 +56,7 @@ function EndpointCard({
   responseExample,
   notes,
 }: {
-  method: "GET" | "POST"
+  method: "GET" | "POST" | "PUT"
   path: string
   description: string
   params?: { name: string; tipo: string; required: boolean; desc: string }[]
@@ -64,7 +64,7 @@ function EndpointCard({
   responseExample: string
   notes?: string
 }) {
-  const methodColor = method === "GET" ? "green" : "blue"
+  const methodColor = method === "GET" ? "green" : method === "PUT" ? "yellow" : "blue"
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-3">
