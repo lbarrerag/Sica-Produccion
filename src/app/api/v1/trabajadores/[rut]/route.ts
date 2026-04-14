@@ -63,8 +63,8 @@ export async function PUT(
   }
 
   // Resolver contratista si se proporcionó
-  let contratistaData: {
-    contratistaId: number
+  let contratistaFields: {
+    contratista: { connect: { id: number } }
     identificadorContratista: string
     nombreContratista: string
   } | undefined
@@ -80,8 +80,8 @@ export async function PUT(
         { status: 404 }
       )
     }
-    contratistaData = {
-      contratistaId: contratista.id,
+    contratistaFields = {
+      contratista: { connect: { id: contratista.id } },
       identificadorContratista: contratista.identificador,
       nombreContratista: contratista.nombre,
     }
@@ -92,7 +92,7 @@ export async function PUT(
     data: {
       ...(nombre !== undefined && { nombre }),
       ...(estado !== undefined && { estado: estado as "VIGENTE" | "NO_VIGENTE" }),
-      ...(contratistaData !== undefined && contratistaData),
+      ...(contratistaFields !== undefined && contratistaFields),
       ...(especialidad !== undefined && { especialidad }),
       ...(direccion !== undefined && { direccion }),
       ...(ciudad !== undefined && { ciudad }),
