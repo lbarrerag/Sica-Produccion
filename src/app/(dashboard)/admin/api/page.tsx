@@ -360,14 +360,23 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
         <EndpointCard
           method="POST"
           path="/api/v1/registro"
-          description="Registra una entrada o salida de un trabajador en una obra. Usa la hora actual del servidor como fecha/hora del registro."
+          description="Registra una entrada o salida de un trabajador en una obra. Usa la hora actual del servidor como fecha/hora del registro. El trabajador se puede identificar por RUT o por idExterno."
           params={[
-            { name: "rut", tipo: "string", required: true, desc: "RUT del trabajador, ej: 12345678-9" },
+            { name: "rut", tipo: "string", required: false, desc: "RUT del trabajador, ej: 12345678-9 (requerido si no se envía idExterno)" },
+            { name: "idExterno", tipo: "number", required: false, desc: "ID del trabajador en el sistema externo (requerido si no se envía rut)" },
             { name: "obraId", tipo: "number", required: true, desc: "ID de la obra donde se registra el acceso" },
             { name: "tipo", tipo: '"ENTRADA" | "SALIDA"', required: true, desc: "Tipo de acceso a registrar" },
           ]}
-          bodyExample={`{
+          bodyExample={`// Opción A — identificar por RUT
+{
   "rut": "12345678-9",
+  "obraId": 1,
+  "tipo": "ENTRADA"
+}
+
+// Opción B — identificar por ID externo
+{
+  "idExterno": 1001,
   "obraId": 1,
   "tipo": "ENTRADA"
 }`}
@@ -382,21 +391,31 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
     }
   }
 }`}
-          notes="El trabajador debe estar en estado VIGENTE. Retorna error 404 si no existe."
+          notes="Se debe enviar rut o idExterno (no ambos). El trabajador debe estar en estado VIGENTE. Retorna error 404 si no existe."
         />
 
         <EndpointCard
           method="POST"
           path="/api/v1/registro/manual"
-          description="Registra una entrada o salida con fecha y hora específica. Útil para importar registros históricos o sincronizar desde dispositivos externos."
+          description="Registra una entrada o salida con fecha y hora específica. Útil para importar registros históricos o sincronizar desde dispositivos externos. El trabajador se puede identificar por RUT o por idExterno."
           params={[
-            { name: "rut", tipo: "string", required: true, desc: "RUT del trabajador, ej: 12345678-9" },
+            { name: "rut", tipo: "string", required: false, desc: "RUT del trabajador, ej: 12345678-9 (requerido si no se envía idExterno)" },
+            { name: "idExterno", tipo: "number", required: false, desc: "ID del trabajador en el sistema externo (requerido si no se envía rut)" },
             { name: "obraId", tipo: "number", required: true, desc: "ID de la obra donde se registra el acceso" },
             { name: "tipo", tipo: '"ENTRADA" | "SALIDA"', required: true, desc: "Tipo de acceso a registrar" },
             { name: "fechaHora", tipo: "string (ISO 8601)", required: true, desc: "Fecha y hora exacta del registro. Ej: 2026-04-13T09:15:00" },
           ]}
-          bodyExample={`{
+          bodyExample={`// Opción A — identificar por RUT
+{
   "rut": "12345678-9",
+  "obraId": 1,
+  "tipo": "ENTRADA",
+  "fechaHora": "2026-04-13T09:15:00"
+}
+
+// Opción B — identificar por ID externo
+{
+  "idExterno": 1001,
   "obraId": 1,
   "tipo": "ENTRADA",
   "fechaHora": "2026-04-13T09:15:00"
@@ -412,7 +431,7 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
     }
   }
 }`}
-          notes="El campo fechaHora es obligatorio y debe ser una fecha ISO 8601 válida. Retorna error 400 si el formato es inválido."
+          notes="Se debe enviar rut o idExterno (no ambos). El campo fechaHora debe ser ISO 8601 válido. Retorna error 400 si el formato es inválido."
         />
 
         {/* ── Trabajadores ── */}

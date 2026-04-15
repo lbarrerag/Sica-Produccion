@@ -12,6 +12,8 @@ import { chileInicioHoy } from "@/lib/chile-time"
  *
  * Body:
  *   { "rut": "12345678-9", "obraId": 1, "tipo": "ENTRADA" | "SALIDA" }
+ *   — o bien —
+ *   { "idExterno": 1001, "obraId": 1, "tipo": "ENTRADA" | "SALIDA" }
  *
  * Respuesta 201:
  *   { "success": true, "registro": { "id", "tipo", "fechaHora", "trabajador": { "nombre" } } }
@@ -25,15 +27,16 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body) return Response.json({ error: "Body JSON inválido" }, { status: 400 })
 
-  const { rut, obraId, tipo } = body as {
-    rut: string
+  const { rut, idExterno, obraId, tipo } = body as {
+    rut?: string
+    idExterno?: number
     obraId: number
     tipo: string
   }
 
-  if (!rut || !obraId || !tipo) {
+  if ((!rut && idExterno === undefined) || !obraId || !tipo) {
     return Response.json(
-      { error: "Se requieren los campos: rut, obraId, tipo" },
+      { error: "Se requieren los campos: (rut o idExterno), obraId, tipo" },
       { status: 400 }
     )
   }
@@ -50,8 +53,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Sin acceso a esta obra" }, { status: 403 })
   }
 
+  // Buscar trabajador por idExterno o por RUT
+  const whereT = idExterno !== undefined
+    ? { idExterno: Number(idExterno), estado: "VIGENTE" as const }
+    : { identificador: rut!, estado: "VIGENTE" as const }
+
   const trabajador = await prisma.trabajador.findFirst({
-    where: { identificador: rut, estado: "VIGENTE" },
+    where: whereT,
     include: { contratista: true },
   })
 

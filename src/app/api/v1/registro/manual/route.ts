@@ -12,6 +12,8 @@ import { fechaEnChile, chileInicioDelDia } from "@/lib/chile-time"
  *
  * Body:
  *   { "rut": "12345678-9", "obraId": 1, "tipo": "ENTRADA" | "SALIDA", "fechaHora": "2026-04-13T09:15:00" }
+ *   — o bien —
+ *   { "idExterno": 1001, "obraId": 1, "tipo": "ENTRADA" | "SALIDA", "fechaHora": "2026-04-13T09:15:00" }
  *
  * Respuesta 201:
  *   { "success": true, "registro": { "id", "tipo", "fechaHora", "trabajador": { "nombre" } } }
@@ -25,16 +27,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body) return Response.json({ error: "Body JSON inválido" }, { status: 400 })
 
-  const { rut, obraId, tipo, fechaHora } = body as {
-    rut: string
+  const { rut, idExterno, obraId, tipo, fechaHora } = body as {
+    rut?: string
+    idExterno?: number
     obraId: number
     tipo: string
     fechaHora: string
   }
 
-  if (!rut || !obraId || !tipo || !fechaHora) {
+  if ((!rut && idExterno === undefined) || !obraId || !tipo || !fechaHora) {
     return Response.json(
-      { error: "Se requieren los campos: rut, obraId, tipo, fechaHora" },
+      { error: "Se requieren los campos: (rut o idExterno), obraId, tipo, fechaHora" },
       { status: 400 }
     )
   }
@@ -59,8 +62,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Sin acceso a esta obra" }, { status: 403 })
   }
 
+  // Buscar trabajador por idExterno o por RUT
+  const whereT = idExterno !== undefined
+    ? { idExterno: Number(idExterno), estado: "VIGENTE" as const }
+    : { identificador: rut!, estado: "VIGENTE" as const }
+
   const trabajador = await prisma.trabajador.findFirst({
-    where: { identificador: rut, estado: "VIGENTE" },
+    where: whereT,
     include: { contratista: true },
   })
 
