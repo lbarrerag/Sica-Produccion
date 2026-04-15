@@ -434,6 +434,49 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
           notes="Se debe enviar rut o idExterno (no ambos). El campo fechaHora debe ser ISO 8601 válido. Retorna error 400 si el formato es inválido."
         />
 
+        <EndpointCard
+          method="GET"
+          path="/api/v1/registros"
+          description="Consulta registros de acceso agrupados por trabajador, obra y día. Devuelve una fila por trabajador/obra/día con su hora de ingreso y salida. Máximo 31 días por consulta."
+          params={[
+            { name: "fechaDesde", tipo: "string YYYY-MM-DD", required: true, desc: "Fecha de inicio del rango (inclusive), hora Chile" },
+            { name: "fechaHasta", tipo: "string YYYY-MM-DD", required: true, desc: "Fecha de fin del rango (inclusive), hora Chile" },
+            { name: "obraId", tipo: "number", required: false, desc: "Filtrar por ID de obra" },
+            { name: "rut", tipo: "string", required: false, desc: "Filtrar por RUT del trabajador, ej: 12345678-9" },
+            { name: "idExterno", tipo: "number", required: false, desc: "Filtrar por ID externo del trabajador" },
+          ]}
+          responseExample={`{
+  "total": 2,
+  "registros": [
+    {
+      "fechaRegistro": "2026-04-14",
+      "identificador": "12345678-9",
+      "idExterno": 1001,
+      "nombre": "Juan Pérez González",
+      "especialidad": "Electricista",
+      "obra": "Edificio Central",
+      "centroCosto": "CC-001",
+      "contratista": "Constructora XYZ",
+      "fechaIngreso": "2026-04-14T09:15:00.000Z",
+      "fechaSalida": "2026-04-14T18:30:00.000Z"
+    },
+    {
+      "fechaRegistro": "2026-04-13",
+      "identificador": "12345678-9",
+      "idExterno": 1001,
+      "nombre": "Juan Pérez González",
+      "especialidad": "Electricista",
+      "obra": "Edificio Central",
+      "centroCosto": "CC-001",
+      "contratista": "Constructora XYZ",
+      "fechaIngreso": "2026-04-13T08:45:00.000Z",
+      "fechaSalida": null
+    }
+  ]
+}`}
+          notes="Los campos fechaIngreso y fechaSalida son ISO 8601 en UTC. Si el trabajador no registró salida ese día, fechaSalida será null. El rango máximo es 31 días."
+        />
+
         {/* ── Trabajadores ── */}
         <h2 className="text-lg font-semibold text-gray-900 pt-4">Trabajadores</h2>
 
