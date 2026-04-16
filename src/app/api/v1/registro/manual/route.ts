@@ -87,9 +87,11 @@ export async function POST(request: Request) {
     )
   }
 
-  // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra
-  // Se evalúa solo dentro del día Chile de la fechaHora enviada
-  const diaFecha = fechaEnChile(fechaRegistro)
+  // Bloquear doble ENTRADA o doble SALIDA consecutiva en la misma obra.
+  // El día se extrae directamente del string enviado (hora local Chile) cuando
+  // no tiene zona horaria, evitando conversiones UTC que pueden desplazar el día.
+  // Si tiene zona horaria, se convierte a hora Chile para obtener el día correcto.
+  const diaFecha = tieneZona ? fechaEnChile(fechaRegistro) : fechaHora.slice(0, 10)
   const ultimoRegistro = await prisma.registroAcceso.findFirst({
     where: {
       trabajadorId: trabajador.id,
