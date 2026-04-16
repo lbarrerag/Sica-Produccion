@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db"
 import { validateApiKey } from "@/lib/api-auth"
-import { fechaEnChile, chileInicioDelDia } from "@/lib/chile-time"
+import { fechaEnChile, chileInicioDelDia, chileOffsetHoras } from "@/lib/chile-time"
 
 /**
  * POST /api/v1/registro/manual
@@ -49,13 +49,21 @@ export async function POST(request: Request) {
     )
   }
 
-  const fechaRegistro = new Date(fechaHora)
-  if (isNaN(fechaRegistro.getTime())) {
+  // Parsear fechaHora. Si no trae zona horaria (sin Z ni +HH:MM) se trata como
+  // hora local Chile y se convierte a UTC sumando el offset correspondiente.
+  const tieneZona = fechaHora.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(fechaHora)
+  const fechaParsed = new Date(fechaHora)
+  if (isNaN(fechaParsed.getTime())) {
     return Response.json(
       { error: "fechaHora no es una fecha válida. Usa formato ISO 8601, ej: 2026-04-13T09:15:00" },
       { status: 400 }
     )
   }
+  // Si no hay zona horaria, la fecha fue parseada como UTC (Node.js con ISO string).
+  // Sumamos el offset Chile para obtener el UTC correcto.
+  const fechaRegistro = tieneZona
+    ? fechaParsed
+    : new Date(fechaParsed.getTime() + chileOffsetHoras(fechaParsed) * 3_600_000)
 
   // Verificar acceso a la obra
   if (apiUser.obraIds.length > 0 && !apiUser.obraIds.includes(Number(obraId))) {
