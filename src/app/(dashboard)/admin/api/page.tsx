@@ -481,6 +481,36 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
         <h2 className="text-lg font-semibold text-gray-900 pt-4">Trabajadores</h2>
 
         <EndpointCard
+          method="GET"
+          path="/api/v1/trabajadores"
+          description="Lista todos los trabajadores del sistema. Soporta filtros opcionales por estado, RUT, nombre, idExterno o contratista."
+          params={[
+            { name: "estado", tipo: '"VIGENTE" | "ELIMINADO"', required: false, desc: "Filtrar por estado (por defecto retorna todos)" },
+            { name: "rut", tipo: "string", required: false, desc: "Buscar por RUT (parcial, ej: 12345678)" },
+            { name: "nombre", tipo: "string", required: false, desc: "Buscar por nombre (parcial, insensible a mayúsculas)" },
+            { name: "idExterno", tipo: "number", required: false, desc: "Buscar por ID externo exacto" },
+            { name: "contratista", tipo: "string", required: false, desc: "Filtrar por RUT del contratista asignado" },
+          ]}
+          responseExample={`{
+  "total": 2,
+  "trabajadores": [
+    {
+      "id": 842,
+      "identificador": "12345678-9",
+      "nombre": "Juan Pérez González",
+      "estado": "VIGENTE",
+      "especialidad": "Electricista",
+      "ciudad": "Santiago",
+      "telefono": "+56912345678",
+      "idExterno": 1001,
+      "identificadorContratista": "76543210-1",
+      "nombreContratista": "Constructora XYZ"
+    }
+  ]
+}`}
+        />
+
+        <EndpointCard
           method="POST"
           path="/api/v1/trabajadores"
           description="Crea un trabajador nuevo. Si el RUT ya existe, reactiva al trabajador y actualiza sus datos."
@@ -552,6 +582,33 @@ console.log(resultado) // { success: true, registro: { id, tipo, fechaHora, trab
 
         {/* ── Contratistas ── */}
         <h2 className="text-lg font-semibold text-gray-900 pt-4">Contratistas</h2>
+
+        <EndpointCard
+          method="GET"
+          path="/api/v1/contratistas"
+          description="Lista todos los contratistas del sistema. Soporta filtros opcionales por estado, RUT o nombre."
+          params={[
+            { name: "estado", tipo: "string", required: false, desc: "Filtrar por estado, ej: VIGENTE" },
+            { name: "rut", tipo: "string", required: false, desc: "Buscar por RUT (parcial)" },
+            { name: "nombre", tipo: "string", required: false, desc: "Buscar por nombre (parcial, insensible a mayúsculas)" },
+          ]}
+          responseExample={`{
+  "total": 1,
+  "contratistas": [
+    {
+      "id": 12,
+      "identificador": "76543210-1",
+      "nombre": "Constructora XYZ SpA",
+      "estado": "VIGENTE",
+      "especialidad": "Construcción",
+      "ciudad": "Santiago",
+      "telefono": "+56222334455",
+      "email": "contacto@xyz.cl",
+      "nombreContador": "Pedro Soto"
+    }
+  ]
+}`}
+        />
 
         <EndpointCard
           method="POST"

@@ -2,6 +2,72 @@ import { prisma } from "@/lib/db"
 import { validateApiKey } from "@/lib/api-auth"
 
 /**
+ * GET /api/v1/trabajadores
+ * Lista todos los trabajadores del sistema.
+ *
+ * Headers:
+ *   Authorization: Bearer <apiKey>
+ *
+ * Query params:
+ *   estado      "VIGENTE" | "ELIMINADO"  opcional  Filtrar por estado (por defecto todos)
+ *   rut         string                   opcional  Buscar por RUT (parcial)
+ *   nombre      string                   opcional  Buscar por nombre (parcial)
+ *   idExterno   number                   opcional  Buscar por ID externo exacto
+ *   contratista string                   opcional  Buscar por RUT del contratista asignado
+ */
+export async function GET(request: Request) {
+  const apiUser = await validateApiKey(request)
+  if (!apiUser) {
+    return Response.json({ error: "API key inválida o inactiva" }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const estadoParam      = searchParams.get("estado")
+  const rutParam         = searchParams.get("rut")
+  const nombreParam      = searchParams.get("nombre")
+  const idExternoParam   = searchParams.get("idExterno")
+  const contratistaParam = searchParams.get("contratista")
+
+  if (estadoParam && estadoParam !== "VIGENTE" && estadoParam !== "ELIMINADO") {
+    return Response.json(
+      { error: 'El parámetro estado debe ser "VIGENTE" o "ELIMINADO"' },
+      { status: 400 }
+    )
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {}
+
+  if (estadoParam)      where.estado      = estadoParam
+  if (idExternoParam)   where.idExterno   = Number(idExternoParam)
+  if (rutParam)         where.identificador = { contains: rutParam.replace(/[.\-]/g, ""), mode: "insensitive" }
+  if (nombreParam)      where.nombre        = { contains: nombreParam, mode: "insensitive" }
+  if (contratistaParam) where.identificadorContratista = {
+    contains: contratistaParam.replace(/[.\-]/g, ""),
+    mode: "insensitive",
+  }
+
+  const trabajadores = await prisma.trabajador.findMany({
+    where,
+    select: {
+      id:                       true,
+      identificador:            true,
+      nombre:                   true,
+      estado:                   true,
+      especialidad:             true,
+      ciudad:                   true,
+      telefono:                 true,
+      idExterno:                true,
+      identificadorContratista: true,
+      nombreContratista:        true,
+    },
+    orderBy: { nombre: "asc" },
+  })
+
+  return Response.json({ total: trabajadores.length, trabajadores })
+}
+
+/**
  * POST /api/v1/trabajadores
  * Crea un trabajador nuevo o lo reactiva si ya existe con ese RUT.
  *

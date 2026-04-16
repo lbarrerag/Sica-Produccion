@@ -2,6 +2,55 @@ import { prisma } from "@/lib/db"
 import { validateApiKey } from "@/lib/api-auth"
 
 /**
+ * GET /api/v1/contratistas
+ * Lista todos los contratistas del sistema.
+ *
+ * Headers:
+ *   Authorization: Bearer <apiKey>
+ *
+ * Query params:
+ *   estado  "VIGENTE"  opcional  Filtrar por estado (por defecto todos)
+ *   rut     string     opcional  Buscar por RUT (parcial)
+ *   nombre  string     opcional  Buscar por nombre (parcial)
+ */
+export async function GET(request: Request) {
+  const apiUser = await validateApiKey(request)
+  if (!apiUser) {
+    return Response.json({ error: "API key inválida o inactiva" }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const estadoParam = searchParams.get("estado")
+  const rutParam    = searchParams.get("rut")
+  const nombreParam = searchParams.get("nombre")
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {}
+
+  if (estadoParam) where.estado = estadoParam
+  if (rutParam)    where.identificador = { contains: rutParam.replace(/[.\-]/g, ""), mode: "insensitive" }
+  if (nombreParam) where.nombre        = { contains: nombreParam, mode: "insensitive" }
+
+  const contratistas = await prisma.contratista.findMany({
+    where,
+    select: {
+      id:            true,
+      identificador: true,
+      nombre:        true,
+      estado:        true,
+      especialidad:  true,
+      ciudad:        true,
+      telefono:      true,
+      email:         true,
+      nombreContador:true,
+    },
+    orderBy: { nombre: "asc" },
+  })
+
+  return Response.json({ total: contratistas.length, contratistas })
+}
+
+/**
  * POST /api/v1/contratistas
  * Crea un contratista nuevo o actualiza sus datos si ya existe ese RUT.
  *
